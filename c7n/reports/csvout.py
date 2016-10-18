@@ -52,6 +52,7 @@ import csv
 from datetime import datetime
 import gzip
 import json
+import jmespath
 import logging
 import os
 
@@ -64,13 +65,15 @@ from c7n.utils import local_session, dumps
 log = logging.getLogger('custodian.reports')
 
 
-def report(policy, start_date, output_fh, raw_output_fh=None, filters=None):
+def report(policy, start_date, options, output_fh, raw_output_fh=None, filters=None):
     """Format a policy's extant records into a report."""
-    formatter = RECORD_TYPE_FORMATTERS.get(policy.resource_type)
+    formatter_cls = RECORD_TYPE_FORMATTERS.get(policy.resource_type)
+    formatter = formatter_cls(
+        extra_fields=options.field, no_default_fields=options.no_default_fields)
 
     if formatter is None:
         raise ValueError(
-            "No formatter for resource type %s, valid: %s" % (
+            "No formatter defined for resource type '%s', valid options: %s" % (
                 policy.resource_type, ", ".join(RECORD_TYPE_FORMATTERS)))
 
     if policy.ctx.output_path.startswith('s3'):
@@ -93,9 +96,12 @@ def report(policy, start_date, output_fh, raw_output_fh=None, filters=None):
 
 
 class Formatter(object):
-    def __init__(self, id_field, headers):
+    def __init__(self, id_field, headers, **kwargs):
         self._id_field = id_field
-        self._headers = headers
+
+        self.extra_fields = kwargs.get('extra_fields', [])
+        self.no_default_fields = kwargs.get('no_default_fields', False)
+        self.set_headers(headers)
 
     def csv_fields(self, record, tag_map):
         '''Must be implemented by subclass'''
@@ -105,12 +111,42 @@ class Formatter(object):
         '''Override in subclass if filtering needed.'''
         return True
 
+    def set_headers(self, headers):
+        self._headers = []
+        if not self.no_default_fields:
+            self._headers = headers
+            
+        for field in self.extra_fields:
+            if self.is_tag_field(field):
+                self._headers.append(self.get_tag_key(field))
+            else:
+                self._headers.append(field)
+
     def headers(self):
         return self._headers
 
+    @classmethod
+    def is_tag_field(cls, field):
+        return field.startswith('tag:')
+    
+    @classmethod
+    def get_tag_key(cls, field):
+        return field.replace('tag:', '', 1)
+
     def extract_csv(self, record):
         tag_map = {t['Key']: t['Value'] for t in record.get('Tags', ())}
-        return self.csv_fields(record, tag_map)
+
+        output = []
+        if not self.no_default_fields:
+            output = self.csv_fields(record, tag_map)
+            
+        for field in self.extra_fields:
+            if self.is_tag_field(field):
+                output.append(tag_map.get(self.get_tag_key(field), ''))
+            else:
+                output.append(jmespath.search(field, record))
+        
+        return output
 
     def uniq_by_id(self, records):
         """Only the first record for each id"""
@@ -140,7 +176,7 @@ class Formatter(object):
 
 class S3Formatter(Formatter):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(S3Formatter, self).__init__(
             'Name',
             ['name',
@@ -148,7 +184,8 @@ class S3Formatter(Formatter):
              'global-permissions',
              'ownercontact',
              'asv',
-             'env'])
+             'env'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -164,11 +201,12 @@ class S3Formatter(Formatter):
 
 
 class EC2Formatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(EC2Formatter, self).__init__(
             'InstanceId',
             ['action-date', 'instance-id', 'name', 'instance-type', 'launch',
-             'vpc-id', 'ip-addr', 'asv', 'env', 'owner'])
+             'vpc-id', 'ip-addr', 'asv', 'env', 'owner'],
+            **kwargs)
 
     def filter_record(self, record):
         return record['State']['Name'] != 'terminated'
@@ -189,10 +227,11 @@ class EC2Formatter(Formatter):
 
 
 class ELBFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(ELBFormatter, self).__init__(
             'DNSName',
-            ['name', 'dns name', 'vpc-id', 'asv', 'env', 'owner'])
+            ['name', 'dns name', 'vpc-id', 'asv', 'env', 'owner'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -206,10 +245,11 @@ class ELBFormatter(Formatter):
 
 
 class RDSFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(RDSFormatter, self).__init__(
             'DBInstanceIdentifier',
-            ['instance id', 'db name', 'creation time', 'encrypted', 'publicly accessible', 'asv', 'env', 'owner'])
+            ['instance id', 'db name', 'creation time', 'encrypted', 'publicly accessible', 'asv', 'env', 'owner'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -224,10 +264,11 @@ class RDSFormatter(Formatter):
 
 
 class ASGFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(ASGFormatter, self).__init__(
             'AutoScalingGroupName',
-            ['name', 'instance-count', 'asv', 'env', 'owner'])
+            ['name', 'instance-count', 'asv', 'env', 'owner'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -240,10 +281,11 @@ class ASGFormatter(Formatter):
 
 
 class AMIFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(AMIFormatter, self).__init__(
             'ImageId',
-            ['id', 'name'])
+            ['id', 'name'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -253,10 +295,11 @@ class AMIFormatter(Formatter):
 
 
 class EBSFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(EBSFormatter, self).__init__(
             'VolumeId',
-            ['id', 'instance-id', 'asv', 'env', 'owner'])
+            ['id', 'instance-id', 'asv', 'env', 'owner'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         instance_id = (record['Attachments'][0]['InstanceId'] if
@@ -270,10 +313,11 @@ class EBSFormatter(Formatter):
         ]
 
 class EBSSnapshotFormatter(Formatter):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(EBSSnapshotFormatter, self).__init__(
             'SnapshotId',
-            ['SnapshotId', 'VolumeId', 'InstanceId', 'VolumeSize', 'StartTime', 'State'])
+            ['SnapshotId', 'VolumeId', 'InstanceId', 'VolumeSize', 'StartTime', 'State'],
+            **kwargs)
 
     def csv_fields(self, record, tag_map):
         return [
@@ -287,14 +331,14 @@ class EBSSnapshotFormatter(Formatter):
 
 # FIXME: Should we use a PluginRegistry instead?
 RECORD_TYPE_FORMATTERS = {
-    'ami': AMIFormatter(),
-    'asg': ASGFormatter(),
-    'ebs': EBSFormatter(),
-    'ebs-snapshot': EBSSnapshotFormatter(),
-    'ec2': EC2Formatter(),
-    'elb': ELBFormatter(),
-    'rds': RDSFormatter(),
-    's3': S3Formatter()
+    'ami': AMIFormatter,
+    'asg': ASGFormatter,
+    'ebs': EBSFormatter,
+    'ebs-snapshot': EBSSnapshotFormatter,
+    'ec2': EC2Formatter,
+    'elb': ELBFormatter,
+    'rds': RDSFormatter,
+    's3': S3Formatter,
 }
 
 

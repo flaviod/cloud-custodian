@@ -73,6 +73,13 @@ def setup_parser():
     report.add_argument(
         '--raw', type=argparse.FileType('wb'),
         help="Store raw json of collected records to given file path")
+    report.add_argument(
+        '--field', action='append', default=[],
+        help='Repeatable. JMESPath of field to include in the output. '\
+            'For a tag use prefix `tag:`')
+    report.add_argument(
+        '--no-default-fields', action="store_true",
+        help='Exclude default fields for report.')
 
     logs = subs.add_parser('logs')
     logs.set_defaults(command=commands.logs)
