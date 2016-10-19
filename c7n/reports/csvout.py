@@ -96,6 +96,9 @@ def report(policy, start_date, options, output_fh, raw_output_fh=None, filters=N
 
 
 class Formatter(object):
+    
+    tag_prefix = 'tag:'
+    
     def __init__(self, id_field, headers, **kwargs):
         self._id_field = id_field
 
@@ -115,23 +118,14 @@ class Formatter(object):
         self._headers = []
         if not self.no_default_fields:
             self._headers = headers
-            
-        for field in self.extra_fields:
-            if self.is_tag_field(field):
-                self._headers.append(self.get_tag_key(field))
-            else:
-                self._headers.append(field)
+
+        for index, field in enumerate(self.extra_fields):
+            header, field_minus_header = field.split('=', 1)
+            self._headers.append(header)
+            self.extra_fields[index] = field_minus_header
 
     def headers(self):
         return self._headers
-
-    @classmethod
-    def is_tag_field(cls, field):
-        return field.startswith('tag:')
-    
-    @classmethod
-    def get_tag_key(cls, field):
-        return field.replace('tag:', '', 1)
 
     def extract_csv(self, record):
         tag_map = {t['Key']: t['Value'] for t in record.get('Tags', ())}
@@ -141,8 +135,9 @@ class Formatter(object):
             output = self.csv_fields(record, tag_map)
             
         for field in self.extra_fields:
-            if self.is_tag_field(field):
-                output.append(tag_map.get(self.get_tag_key(field), ''))
+            if field.startswith(self.tag_prefix):
+                tag_field = field.replace(self.tag_prefix, '', 1)
+                output.append(tag_map.get(tag_field, ''))
             else:
                 output.append(jmespath.search(field, record))
         
