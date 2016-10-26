@@ -55,6 +55,7 @@ import json
 import jmespath
 import logging
 import os
+import copy
 
 from dateutil.parser import parse as date_parse
 
@@ -102,7 +103,8 @@ class Formatter(object):
     def __init__(self, id_field, headers, **kwargs):
         self._id_field = id_field
 
-        self.extra_fields = kwargs.get('extra_fields', [])
+        # Make a copy because we modify the values when we strip off the header
+        self.extra_fields = copy.copy(kwargs.get('extra_fields', []))
         self.no_default_fields = kwargs.get('no_default_fields', False)
         self.set_headers(headers)
 
@@ -139,7 +141,10 @@ class Formatter(object):
                 tag_field = field.replace(self.tag_prefix, '', 1)
                 output.append(tag_map.get(tag_field, ''))
             else:
-                output.append(jmespath.search(field, record))
+                value = jmespath.search(field, record)
+                if value is None:
+                    value = ""
+                output.append(value)
         
         return output
 
