@@ -24,6 +24,7 @@ import yaml
 from c7n.credentials import SessionFactory
 from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
+from c7n.policymetrics import policy_metrics as do_policy_metrics
 from c7n.utils import Bag
 from c7n.schema import schema_summary, resource_vocabulary
 from c7n.schema import validate as schema_validate
@@ -152,6 +153,11 @@ def schema(options):
         schema_summary(result)
     else:
         print(yaml.safe_dump(result, default_flow_style=False))
+
+
+@policy_command
+def policy_metrics(options, policies):
+    do_policy_metrics(options, policies)
 
 
 def cmd_version(options):
