@@ -77,7 +77,7 @@ def report(policy, start_date, options, output_fh, raw_output_fh=None, filters=N
             "No formatter defined for resource type '%s', valid options: %s" % (
                 policy.resource_type, ", ".join(RECORD_TYPE_FORMATTERS)))
 
-    if policy.ctx.output_path.startswith('s3'):
+    if policy.ctx.output.use_s3():
         records = record_set(
             policy.session_factory,
             policy.ctx.output.bucket,
