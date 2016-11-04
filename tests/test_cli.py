@@ -124,8 +124,13 @@ class SchemaTest(BaseTest):
 
         cli.main()
         self.assertEqual(exit_code, [])
-        # summarize option
-        self.patch(sys, 'argv', ['custodian', 'schema', '--summarize'])
+        # summary option
+        self.patch(sys, 'argv', ['custodian', 'schema', '--summary'])
+
+        cli.main()
+        self.assertEqual(exit_code, [])
+        # json option
+        self.patch(sys, 'argv', ['custodian', 'schema', '--json'])
 
         cli.main()
         self.assertEqual(exit_code, [])

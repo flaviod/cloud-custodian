@@ -93,6 +93,22 @@ def _policy_metrics_validate(parser, options):
         parser.exit(status=2, message='error: --start and --end must be specified together.\n')
 
 
+def _schema_options(p):
+    """ Add options specific to schema subcommand. """
+
+    p.add_argument('resource', metavar='selector', nargs='?', default=None)
+    p.add_argument(
+        '--summary', action="store_true",
+        help="Summarize counts of available resources, actions and filters")
+    p.add_argument(
+        '--json', action="store_true",
+        help="Output to JSON format")
+    p.add_argument(
+        '-v', '--verbose', action="store_true",
+        help="Verbose logging")
+    p.add_argument("--debug", default=False, help=argparse.SUPPRESS)
+
+
 def _dryrun_option(p):
     p.add_argument(
         "-d", "--dryrun", action="store_true",
@@ -161,15 +177,13 @@ def setup_parser():
     validate.add_argument("--debug", action="store_true",
                           help="Dev Debug")
 
-    schema = subs.add_parser('schema')
+    schema_desc = ("Browse the available resources, as well as actions and "
+                   "filters available for each resource type. The selector "
+                   "can be passed in the form of RESOURCE[.CATEGORY[.ITEM]], "
+                   "e.g.: s3, ebs.actions, or ec2.filters.instance-age")
+    schema = subs.add_parser('schema', description=schema_desc)
     schema.set_defaults(command=commands.schema)
-    schema.add_argument('--summarize', action="store_true",
-                        help="Summarize counts of available resources, \
-                              actions and filters")
-    schema.add_argument('--json', action="store_true",
-                        help="Switch output to JSON")
-    schema.add_argument("-v", "--verbose", action="store_true",
-                        help="Verbose Logging")
+    _schema_options(schema)
 
     #resources = subs.add_parser('resources')
     #resources.set_defaults(command=commands.resources)

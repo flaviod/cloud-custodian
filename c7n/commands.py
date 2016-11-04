@@ -26,7 +26,7 @@ from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
 from c7n.policymetrics import policy_metrics as do_policy_metrics
 from c7n.utils import Bag
-from c7n.schema import schema_summary, resource_vocabulary
+from c7n.schema import print_schema
 from c7n.schema import validate as schema_validate
 from c7n import mu, version, resources
 
@@ -144,16 +144,11 @@ def logs(options, policies):
 
 
 def schema(options):
-    """ Output information about the resources, actions and filters
-        available
     """
-    resources.load_resources()
-    result = resource_vocabulary()
-    if options.summarize:
-        schema_summary(result)
-    else:
-        print(yaml.safe_dump(result, default_flow_style=False))
-
+    Output information about the resources, actions and filters available.
+    """
+    print_schema(options)
+    
 
 @policy_command
 def policy_metrics(options, policies):

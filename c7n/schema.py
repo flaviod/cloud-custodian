@@ -28,11 +28,14 @@ the utils.type_schema function.
 from collections import Counter
 import json
 import logging
+import yaml
+import inspect
 
 from jsonschema import Draft4Validator as Validator
 from jsonschema.exceptions import best_match
 
 from c7n.manager import resources
+from c7n.resources import load_resources
 from c7n.filters import ValueFilter, EventFilter, AgeFilter
 
 
@@ -321,26 +324,23 @@ def process_resource(type_name, resource_type, resource_defs):
 def resource_vocabulary():
     vocabulary = {}
     for type_name, resource_type in resources.items():
+        docs = {'actions': {}, 'filters': {}}
+
         actions = []
-        action_classes = set()
-        for action_name, klass in reversed(
-                resource_type.action_registry.items()):
-            # Dedup aliases
-            if klass in action_classes:
-                continue
+        for action_name, cls in resource_type.action_registry.items():
             actions.append(action_name)
+            docs['actions'][action_name] = inspect.getdoc(cls)
 
         filters = []
-        filter_classes = set()
-        for filter_name, klass in reversed(
-                resource_type.filter_registry.items()):
-            # Dedup aliases
-            if klass in filter_classes:
-                continue
+        for filter_name, cls in resource_type.filter_registry.items():
             filters.append(filter_name)
+            docs['filters'][filter_name] = inspect.getdoc(cls)
 
         vocabulary[type_name] = {
-            'filters': filters, 'actions': actions}
+            'filters': sorted(filters),
+            'actions': sorted(actions),
+            'docs': docs,
+        }
     return vocabulary
 
 
@@ -361,14 +361,107 @@ def schema_summary(vocabulary):
     print "unique filters: %d" % filter_count
     print "common filters: %s" % len(common_filters)
 
-if __name__ == '__main__':
-    from c7n.resources import load_resources
+
+def json_dump():
     load_resources()
-    # dump our schema
-    # $ python -m c7n.schema
     try:
         print(json.dumps(generate(), indent=2))
     except:
         import traceback, pdb, sys
         traceback.print_exc()
         pdb.post_mortem(sys.exc_info()[-1])
+
+
+def print_schema(options):
+    """
+    Print information about the schema.
+    """
+    if options.json:
+        json_dump()
+        return
+        
+    load_resources()
+    resource_mapping = resource_vocabulary()
+
+    if options.summary:
+        schema_summary(resource_mapping)
+        return
+
+    # Here are the formats for what we accept:
+    # - No argument
+    #   - List all available RESOURCES
+    # - RESOURCE
+    #   - List all available actions and filters for supplied RESOURCE
+    # - RESOURCE.actions
+    #   - List all available actions for supplied RESOURCE
+    # - RESOURCE.actions.ACTION
+    #   - Show class doc string and schema for supplied action
+    # - RESOURCE.filters
+    #   - List all available filters for supplied RESOURCE
+    # - RESOURCE.filters.FILTER
+    #   - Show class doc string and schema for supplied filter
+
+    if not options.resource:
+        resource_list = {'resources': sorted(resources.keys()) }
+        print(yaml.safe_dump(resource_list, default_flow_style=False))
+        return
+
+    # Format is RESOURCE.CATEGORY.ITEM
+    components = options.resource.split('.')
+
+    #
+    # Handle resource
+    #
+    resource = components[0].lower()
+    if resource not in resource_mapping:
+        raise ValueError('{} is not a valid resource'.format(resource))
+
+    if len(components) == 1:
+        del(resource_mapping[resource]['docs'])
+        output = {resource: resource_mapping[resource]}
+        print(yaml.safe_dump(output))
+        return
+
+    #
+    # Handle category
+    #
+    category = components[1].lower()
+    if category not in ('actions', 'filters'):
+        raise ValueError("Valid choices are 'actions' and 'filters'.  You supplied '{}'".format(category))
+    
+    if len(components) == 2:
+        output = "No {} available for resource {}.".format(category, resource)
+        if category in resource_mapping[resource]:
+            output = {resource: {category: resource_mapping[resource][category]}}
+        print(yaml.safe_dump(output))
+        return
+
+    #
+    # Handle item
+    #
+    item = components[2].lower()
+    if item not in resource_mapping[resource][category]:
+        raise ValueError('{} is not in the {} list for resource {}'.format(item, category, resource))
+
+    if len(components) == 3:
+        docstring = resource_mapping[resource]['docs'][category][item]
+        if docstring:
+            print(docstring)
+        else:
+            print("No help is available for this item.")
+        return
+
+    # We received too much (e.g. s3.actions.foo.bar)
+    raise ValueError("Invalid selector '{}'.  Max of 3 components in the "\
+                     "format RESOURCE.CATEGORY.ITEM".format(options.resource))
+
+
+if __name__ == '__main__':
+    # dump our schema
+    #
+    # The canonical way to do this now is `custodian schema --json`, but I am
+    # leaving in this __main__ section in case people are relying on the old
+    # ability to just do:
+    # 
+    # $ python -m c7n.schema
+    json_dump()
