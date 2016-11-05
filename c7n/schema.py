@@ -362,10 +362,10 @@ def schema_summary(vocabulary):
     print "common filters: %s" % len(common_filters)
 
 
-def json_dump():
+def json_dump(resource=None):
     load_resources()
     try:
-        print(json.dumps(generate(), indent=2))
+        print(json.dumps(generate(resource), indent=2))
     except:
         import traceback, pdb, sys
         traceback.print_exc()
@@ -377,7 +377,7 @@ def print_schema(options):
     Print information about the schema.
     """
     if options.json:
-        json_dump()
+        json_dump(options.resource)
         return
         
     load_resources()
