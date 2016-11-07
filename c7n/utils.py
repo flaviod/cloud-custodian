@@ -45,6 +45,10 @@ else:
 from StringIO import StringIO
 
 
+# For bad input to a subcommand
+class ArgumentError(Exception): pass
+
+
 class Bag(dict):
 
     def __getattr__(self, k):

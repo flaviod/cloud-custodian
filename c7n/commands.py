@@ -25,7 +25,7 @@ from c7n.credentials import SessionFactory
 from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
 from c7n.policymetrics import policy_metrics as do_policy_metrics
-from c7n.utils import Bag
+from c7n.utils import Bag, ArgumentError
 from c7n.schema import print_schema
 from c7n.schema import validate as schema_validate
 from c7n import mu, version, resources
@@ -147,7 +147,11 @@ def schema(options):
     """
     Output information about the resources, actions and filters available.
     """
-    print_schema(options)
+    try:
+        print_schema(options)
+    except ArgumentError as e:
+        print("Error - " + e.message)
+        sys.exit(2)
     
 
 @policy_command

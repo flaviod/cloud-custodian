@@ -37,6 +37,7 @@ from jsonschema.exceptions import best_match
 from c7n.manager import resources
 from c7n.resources import load_resources
 from c7n.filters import ValueFilter, EventFilter, AgeFilter
+from c7n.utils import ArgumentError
 
 
 def validate(data, schema=None):
@@ -414,7 +415,7 @@ def print_schema(options):
     #
     resource = components[0].lower()
     if resource not in resource_mapping:
-        raise ValueError('{} is not a valid resource'.format(resource))
+        raise ArgumentError('{} is not a valid resource'.format(resource))
 
     if len(components) == 1:
         del(resource_mapping[resource]['docs'])
@@ -427,7 +428,7 @@ def print_schema(options):
     #
     category = components[1].lower()
     if category not in ('actions', 'filters'):
-        raise ValueError("Valid choices are 'actions' and 'filters'.  You supplied '{}'".format(category))
+        raise ArgumentError("Valid choices are 'actions' and 'filters'.  You supplied '{}'".format(category))
     
     if len(components) == 2:
         output = "No {} available for resource {}.".format(category, resource)
@@ -441,7 +442,7 @@ def print_schema(options):
     #
     item = components[2].lower()
     if item not in resource_mapping[resource][category]:
-        raise ValueError('{} is not in the {} list for resource {}'.format(item, category, resource))
+        raise ArgumentError('{} is not in the {} list for resource {}'.format(item, category, resource))
 
     if len(components) == 3:
         docstring = resource_mapping[resource]['docs'][category][item]
@@ -452,8 +453,8 @@ def print_schema(options):
         return
 
     # We received too much (e.g. s3.actions.foo.bar)
-    raise ValueError("Invalid selector '{}'.  Max of 3 components in the "\
-                     "format RESOURCE.CATEGORY.ITEM".format(options.resource))
+    raise ArgumentError("Invalid selector '{}'.  Max of 3 components in the "\
+                        "format RESOURCE.CATEGORY.ITEM".format(options.resource))
 
 
 if __name__ == '__main__':
