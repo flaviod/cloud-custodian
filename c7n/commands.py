@@ -29,7 +29,7 @@ from c7n.utils import Bag, ArgumentError
 from c7n.schema import print_schema
 from c7n.schema import generate as schema_generate
 from c7n.schema import validate as schema_validate
-from c7n import mu, version, resources
+from c7n import mu, version
 
 
 log = logging.getLogger('custodian.commands')
@@ -57,6 +57,7 @@ def validate(options):
         sys.exit(2)
     used_policy_names = set()
     schm = schema_generate()
+    errors = []
     for config_file in options.configs:
         config_file = os.path.expanduser(config_file)
         if not os.path.exists(config_file):
@@ -86,16 +87,17 @@ def validate(options):
                 try:
                     Policy(p, null_config, Bag())
                 except Exception as e:
-                    log.error("Policy: %s is invalid: %s" % (
-                        p.get('name', 'unknown'), e))
-                    sys.exit(1)
-                    return
+                    msg = "Policy: %s is invalid: %s" % (
+                        p.get('name', 'unknown'), e)
+                    errors.append(msg)
+        if not errors:
             log.info("Configuration valid: {}".format(config_file))
             continue
 
         log.error("Configuration invalid: {}".format(config_file))
         for e in errors:
             log.error(" %s" % e)
+    if errors:
         sys.exit(1)
 
 
