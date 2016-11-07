@@ -56,6 +56,7 @@ def validate(options):
         sys.exit(2)
     used_policy_names = set()
     for config_file in options.configs:
+        config_file = os.path.expanduser(config_file)
         if not os.path.exists(config_file):
             raise ValueError("Invalid path for config %r" % config_file)
 
