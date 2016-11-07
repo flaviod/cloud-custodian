@@ -72,14 +72,14 @@ def validate(options):
 
         errors = schema_validate(data, schm)
         conf_policy_names = {p['name'] for p in data.get('policies', ())}
-        dupes = conf_policy_names & used_policy_names
+        dupes = conf_policy_names.intersection(used_policy_names)
         if len(dupes) >= 1:
             errors.append(ValueError(
                 "Only one policy with a given name allowed, duplicates: %s" % (
                     ", ".join(dupes)
                 )
             ))
-        used_policy_names = used_policy_names | conf_policy_names
+        used_policy_names = used_policy_names.union(conf_policy_names)
         if not errors:
             null_config = Bag(dryrun=True, log_group=None, cache=None, assume_role="na")
             for p in data.get('policies', ()):
