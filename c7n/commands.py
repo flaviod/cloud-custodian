@@ -27,6 +27,7 @@ from c7n.reports import report as do_report
 from c7n.policymetrics import policy_metrics as do_policy_metrics
 from c7n.utils import Bag, ArgumentError
 from c7n.schema import print_schema
+from c7n.schema import generate as schema_generate
 from c7n.schema import validate as schema_validate
 from c7n import mu, version, resources
 
@@ -55,6 +56,7 @@ def validate(options):
         print('custodian validate: error: no config files specified')
         sys.exit(2)
     used_policy_names = set()
+    schm = schema_generate()
     for config_file in options.configs:
         config_file = os.path.expanduser(config_file)
         if not os.path.exists(config_file):
@@ -68,7 +70,7 @@ def validate(options):
             if format in ('json',):
                 data = json.load(fh)
 
-        errors = schema_validate(data)
+        errors = schema_validate(data, schm)
         conf_policy_names = {p['name'] for p in data.get('policies', ())}
         dupes = conf_policy_names & used_policy_names
         if len(dupes) >= 1:
