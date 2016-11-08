@@ -80,19 +80,6 @@ def _policy_metrics_options(p):
     p.add_argument("--cache", default=None, help=argparse.SUPPRESS)
 
 
-def _policy_metrics_validate(parser, options):
-    """ Validate options specified for policy-metrics subcommand. """
-
-    # --start and --end must be specified together
-    if bool(options.start) ^ bool(options.end):
-        # Using `parser.exit` instead of `parser.error` because the latter one
-        # will print the top-level usage message, instead of the policy-metrics
-        # specific one.  I couldn't figure out how to get argparse to give me
-        # the subparser class so I can't call the more appropriate
-        # `subparser.error`.
-        parser.exit(status=2, message='error: --start and --end must be specified together.\n')
-
-
 def _schema_options(p):
     """ Add options specific to schema subcommand. """
 
@@ -205,10 +192,6 @@ def setup_parser():
 def main():
     parser = setup_parser()
     options = parser.parse_args()
-
-    # policy-metrics requires some post-parsing validation
-    if options.subparser == 'policy-metrics':
-        _policy_metrics_validate(parser, options)
 
     level = options.verbose and logging.DEBUG or logging.INFO
     logging.basicConfig(

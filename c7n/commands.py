@@ -25,10 +25,14 @@ from c7n.credentials import SessionFactory
 from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
 from c7n.policymetrics import policy_metrics as do_policy_metrics
-from c7n.utils import Bag, ArgumentError
-from c7n.schema import print_schema
+from c7n.utils import Bag
+from c7n.exceptions import ArgumentError
+from c7n.manager import resources
+from c7n.resources import load_resources
+from c7n.schema import json_dump as schema_json_dump
 from c7n.schema import validate as schema_validate
-from c7n import mu, version, resources
+from c7n.schema import resource_vocabulary, schema_summary
+from c7n import mu, version
 
 
 log = logging.getLogger('custodian.commands')
@@ -147,16 +151,97 @@ def schema(options):
     """
     Output information about the resources, actions and filters available.
     """
-    try:
-        print_schema(options)
-    except ArgumentError as e:
-        print("Error - " + e.message)
+    if options.json:
+        schema_json_dump(options.resource)
+        return
+        
+    load_resources()
+    resource_mapping = resource_vocabulary()
+
+    if options.summary:
+        schema_summary(resource_mapping)
+        return
+
+    # Here are the formats for what we accept:
+    # - No argument
+    #   - List all available RESOURCES
+    # - RESOURCE
+    #   - List all available actions and filters for supplied RESOURCE
+    # - RESOURCE.actions
+    #   - List all available actions for supplied RESOURCE
+    # - RESOURCE.actions.ACTION
+    #   - Show class doc string and schema for supplied action
+    # - RESOURCE.filters
+    #   - List all available filters for supplied RESOURCE
+    # - RESOURCE.filters.FILTER
+    #   - Show class doc string and schema for supplied filter
+
+    if not options.resource:
+        resource_list = {'resources': sorted(resources.keys()) }
+        print(yaml.safe_dump(resource_list, default_flow_style=False))
+        return
+
+    # Format is RESOURCE.CATEGORY.ITEM
+    components = options.resource.split('.')
+
+    #
+    # Handle resource
+    #
+    resource = components[0].lower()
+    if resource not in resource_mapping:
+        print('{} is not a valid resource'.format(resource))
         sys.exit(2)
+
+    if len(components) == 1:
+        del(resource_mapping[resource]['docs'])
+        output = {resource: resource_mapping[resource]}
+        print(yaml.safe_dump(output))
+        return
+
+    #
+    # Handle category
+    #
+    category = components[1].lower()
+    if category not in ('actions', 'filters'):
+        print("Valid choices are 'actions' and 'filters'.  You supplied '{}'".format(category))
+        sys.exit(2)
+    
+    if len(components) == 2:
+        output = "No {} available for resource {}.".format(category, resource)
+        if category in resource_mapping[resource]:
+            output = {resource: {category: resource_mapping[resource][category]}}
+        print(yaml.safe_dump(output))
+        return
+
+    #
+    # Handle item
+    #
+    item = components[2].lower()
+    if item not in resource_mapping[resource][category]:
+        print('{} is not in the {} list for resource {}'.format(item, category, resource))
+        sys.exit(2)
+
+    if len(components) == 3:
+        docstring = resource_mapping[resource]['docs'][category][item]
+        if docstring:
+            print(docstring)
+        else:
+            print("No help is available for this item.")
+        return
+
+    # We received too much (e.g. s3.actions.foo.bar)
+    print("Invalid selector '{}'.  Max of 3 components in the "\
+          "format RESOURCE.CATEGORY.ITEM".format(options.resource))
+    sys.exit(2)
     
 
 @policy_command
 def policy_metrics(options, policies):
-    do_policy_metrics(options, policies)
+    try:
+        do_policy_metrics(options, policies)
+    except ArgumentError as e:
+        print("Error: " + e.message)
+        sys.exit(2)
 
 
 def cmd_version(options):

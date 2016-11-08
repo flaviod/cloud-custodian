@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import logging
 
 from c7n.credentials import SessionFactory
+from c7n.exceptions import ArgumentError
 from c7n.resources import load_resources
 from c7n.utils import dumps
 
@@ -44,6 +45,9 @@ def get_endpoints(options):
     """
     Determine the start and end dates based on the user-supplied optins.
     """
+    if bool(options.start) ^ bool(options.end):
+        raise ArgumentError('--start and --end must be specified together')
+
     if options.start and options.end:
         start = options.start
         end = options.end
