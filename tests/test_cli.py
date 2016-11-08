@@ -134,6 +134,26 @@ class SchemaTest(BaseTest):
 
         cli.main()
         self.assertEqual(exit_code, [])
+        # json option
+        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2'])
+
+        cli.main()
+        self.assertEqual(exit_code, [])
+        # json option
+        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.actions'])
+
+        cli.main()
+        self.assertEqual(exit_code, [])
+        # json option
+        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters'])
+
+        cli.main()
+        self.assertEqual(exit_code, [])
+        # json option
+        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters.tag-count'])
+
+        cli.main()
+        self.assertEqual(exit_code, [])
 
 
 class ReportTest(BaseTest):

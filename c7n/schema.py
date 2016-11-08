@@ -330,12 +330,12 @@ def resource_vocabulary():
         actions = []
         for action_name, cls in resource_type.action_registry.items():
             actions.append(action_name)
-            docs['actions'][action_name] = inspect.getdoc(cls)
+            docs['actions'][action_name] = get_docstring(cls)
 
         filters = []
         for filter_name, cls in resource_type.filter_registry.items():
             filters.append(filter_name)
-            docs['filters'][filter_name] = inspect.getdoc(cls)
+            docs['filters'][filter_name] = get_docstring(cls)
 
         vocabulary[type_name] = {
             'filters': sorted(filters),
@@ -343,6 +343,16 @@ def resource_vocabulary():
             'docs': docs,
         }
     return vocabulary
+
+
+def get_docstring(starting_class):
+    """
+    Given a class, return its docstring.
+    If no docstring is present for the class, search base classes in MRO for a docstring.
+    """
+    for cls in inspect.getmro(starting_class):
+        if inspect.getdoc(cls):
+            return inspect.getdoc(cls)
 
 
 def schema_summary(vocabulary):
