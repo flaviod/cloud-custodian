@@ -218,7 +218,7 @@ class ValueFilter(Filter):
             'key': {'type': 'string'},
             'value_type': {'enum': [
                 'age', 'integer', 'expiration', 'normalize', 'size',
-                'cidr', 'cidr_size', 'swap']},
+                'cidr', 'cidr_size', 'swap', 'day']},
             'default': {'type': 'object'},
             'value_from': ValuesFrom.schema,
             'value': {'oneOf': [
@@ -375,6 +375,21 @@ class ValueFilter(Filter):
                 value = parse(value)
 
             return sentinel, value
+        elif self.vtype == 'day':
+            if not isinstance(sentinel, int):
+                try:
+                    sentinel = int(sentinel)
+                except ValueError:
+                    sentinel = 0
+
+            if not isinstance(value, datetime):
+                try:
+                    value = parse(value)
+                except AttributeError:
+                    value = 0
+            if isinstance(value, datetime):
+                value = value.day
+            return value, sentinel
         return sentinel, value
 
 
