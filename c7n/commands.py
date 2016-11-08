@@ -30,6 +30,7 @@ from c7n.exceptions import ArgumentError
 from c7n.manager import resources
 from c7n.resources import load_resources
 from c7n.schema import json_dump as schema_json_dump
+from c7n.schema import generate as schema_generate
 from c7n.schema import validate as schema_validate
 from c7n.schema import resource_vocabulary, schema_summary
 from c7n import mu, version
@@ -59,7 +60,10 @@ def validate(options):
         print('custodian validate: error: no config files specified')
         sys.exit(2)
     used_policy_names = set()
+    schm = schema_generate()
+    errors = []
     for config_file in options.configs:
+        config_file = os.path.expanduser(config_file)
         if not os.path.exists(config_file):
             raise ValueError("Invalid path for config %r" % config_file)
 
@@ -71,32 +75,33 @@ def validate(options):
             if format in ('json',):
                 data = json.load(fh)
 
-        errors = schema_validate(data)
+        errors = schema_validate(data, schm)
         conf_policy_names = {p['name'] for p in data.get('policies', ())}
-        dupes = conf_policy_names & used_policy_names
+        dupes = conf_policy_names.intersection(used_policy_names)
         if len(dupes) >= 1:
             errors.append(ValueError(
                 "Only one policy with a given name allowed, duplicates: %s" % (
                     ", ".join(dupes)
                 )
             ))
-        used_policy_names = used_policy_names | conf_policy_names
+        used_policy_names = used_policy_names.union(conf_policy_names)
         if not errors:
             null_config = Bag(dryrun=True, log_group=None, cache=None, assume_role="na")
             for p in data.get('policies', ()):
                 try:
                     Policy(p, null_config, Bag())
                 except Exception as e:
-                    log.error("Policy: %s is invalid: %s" % (
-                        p.get('name', 'unknown'), e))
-                    sys.exit(1)
-                    return
+                    msg = "Policy: %s is invalid: %s" % (
+                        p.get('name', 'unknown'), e)
+                    errors.append(msg)
+        if not errors:
             log.info("Configuration valid: {}".format(config_file))
             continue
 
         log.error("Configuration invalid: {}".format(config_file))
         for e in errors:
             log.error(" %s" % e)
+    if errors:
         sys.exit(1)
 
 
