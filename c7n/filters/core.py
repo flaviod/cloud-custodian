@@ -385,7 +385,7 @@ class ValueFilter(Filter):
             if not isinstance(value, datetime):
                 try:
                     value = parse(value)
-                except AttributeError:
+                except (AttributeError, TypeError):
                     value = 0
             if isinstance(value, datetime):
                 value = value.day
