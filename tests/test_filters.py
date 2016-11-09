@@ -309,11 +309,13 @@ class TestValueTypes(BaseFilterTest):
 
         self.assertFilter(fdata, i(now), True)
         self.assertFilter(fdata, i(three_days), False)
-        # non-integer day
+        # exception/type handling
         fdata['value'] = str(now.day)
         self.assertFilter(fdata, i(now), True)
         fdata['value'] = 'One'
         self.assertFilter(fdata, i(now), False)
+        fdata['value'] = now.day
+        self.assertFilter(fdata, i(0), False)
 
 
 class TestInstanceAge(BaseFilterTest):
