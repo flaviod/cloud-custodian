@@ -218,7 +218,7 @@ class ValueFilter(Filter):
             'key': {'type': 'string'},
             'value_type': {'enum': [
                 'age', 'integer', 'expiration', 'normalize', 'size',
-                'cidr', 'cidr_size', 'swap', 'day']},
+                'cidr', 'cidr_size', 'swap', 'day', 'age_in_days']},
             'default': {'type': 'object'},
             'value_from': ValuesFrom.schema,
             'value': {'oneOf': [
@@ -352,6 +352,20 @@ class ValueFilter(Filter):
             # greater than the sentinel typically. Else the syntax for age
             # comparisons is intuitively wrong.
             return value, sentinel
+        elif self.vtype == 'age_in_days':
+            now = datetime.now(tz=tzutc())
+            if not isinstance(sentinel, int):
+                try:
+                    sentinel = int(sentinel)
+                except ValueError:
+                    sentinel = 0
+            if not isinstance(value, datetime):
+                try:
+                    value = parse(value)
+                except (AttributeError, TypeError):
+                    value = now
+            delta = now - value
+            return sentinel, delta.days
         elif self.vtype == 'cidr':
             s = parse_cidr(sentinel)
             v = parse_cidr(value)

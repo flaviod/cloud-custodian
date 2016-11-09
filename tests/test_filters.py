@@ -270,6 +270,46 @@ class TestValueTypes(BaseFilterTest):
         self.assertFilter(fdata, i(now), True)
         self.assertFilter(fdata, i(now.isoformat()), True)
 
+    def test_age_in_days(self):
+        days = 40
+        now = datetime.now(tz=tz.tzutc())
+        three_months = now - timedelta(90)
+        two_months = now - timedelta(60)
+        one_month = now - timedelta(30)
+        days_back = now - timedelta(days)
+        day_before = now - timedelta(days + 1)
+        day_after = now - timedelta(days - 1)
+
+        def i(d):
+            return instance(LaunchTime=d)
+
+        fdata = {
+            'type': 'value',
+            'key': 'LaunchTime',
+            'op': 'less-than',
+            'value_type': 'age_in_days',
+            'value': days,
+        }
+
+        # test less than (similar to age tests)
+        self.assertFilter(fdata, i(three_months), False)
+        self.assertFilter(fdata, i(two_months), False)
+        self.assertFilter(fdata, i(one_month), True)
+        # test equality
+        fdata['op'] = 'equal'
+        self.assertFilter(fdata, i(days_back), True)
+        self.assertFilter(fdata, i(day_before), False)
+        self.assertFilter(fdata, i(day_after), False)
+        # test type conversions
+        fdata['value'] = str(days)
+        self.assertFilter(fdata, i(days_back), True)
+        self.assertFilter(fdata, i("Jan 1, 2010 3pm UTC"), False)
+        # test exception handling
+        fdata['value'] = 'One'
+        self.assertFilter(fdata, i(days_back), False)
+        fdata['value'] = days
+        self.assertFilter(fdata, i(10), False)
+
     def test_expiration(self):
 
         now = datetime.now(tz=tz.tzutc())
