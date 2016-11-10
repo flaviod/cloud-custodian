@@ -149,9 +149,7 @@ def logs(options, policies):
 
 
 def schema_cmd(options):
-    """
-    Output information about the resources, actions and filters available.
-    """
+    """ Print info about the resources, actions and filters available. """
     if options.json:
         schema.json_dump(options.resource)
         return

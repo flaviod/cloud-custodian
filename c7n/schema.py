@@ -346,9 +346,10 @@ def resource_vocabulary():
 
 
 def get_docstring(starting_class):
-    """
-    Given a class, return its docstring.
-    If no docstring is present for the class, search base classes in MRO for a docstring.
+    """ Given a class, return its docstring.
+
+    If no docstring is present for the class, search base classes in MRO for a
+    docstring.
     """
     for cls in inspect.getmro(starting_class):
         if inspect.getdoc(cls):

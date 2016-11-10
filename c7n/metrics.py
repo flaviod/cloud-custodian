@@ -42,9 +42,7 @@ def metrics(options, policies):
 
 
 def get_endpoints(options):
-    """
-    Determine the start and end dates based on the user-supplied optins.
-    """
+    """ Determine the start and end dates based on user-supplied options. """
     if bool(options.start) ^ bool(options.end):
         raise ArgumentError('--start and --end must be specified together')
 
