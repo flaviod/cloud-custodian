@@ -13,9 +13,11 @@
 # limitations under the License.
 from datetime import timedelta, datetime
 from functools import wraps
+import inspect
 import json
 import logging
 import os
+import pprint
 import sys
 import time
 
@@ -147,6 +149,17 @@ def logs(options, policies):
             e['message'])
 
 
+def _schema_get_docstring(starting_class):
+    """ Given a class, return its docstring.
+
+    If no docstring is present for the class, search base classes in MRO for a
+    docstring.
+    """
+    for cls in inspect.getmro(starting_class):
+        if inspect.getdoc(cls):
+            return inspect.getdoc(cls)
+
+
 def schema_cmd(options):
     """ Print info about the resources, actions and filters available. """
     if options.json:
@@ -191,7 +204,7 @@ def schema_cmd(options):
         sys.exit(2)
 
     if len(components) == 1:
-        del(resource_mapping[resource]['docs'])
+        del(resource_mapping[resource]['classes'])
         output = {resource: resource_mapping[resource]}
         print(yaml.safe_dump(output))
         return
@@ -220,11 +233,25 @@ def schema_cmd(options):
         sys.exit(2)
 
     if len(components) == 3:
-        docstring = resource_mapping[resource]['docs'][category][item]
+        cls = resource_mapping[resource]['classes'][category][item]
+
+        # Print docstring
+        docstring = _schema_get_docstring(cls)
+        print("\nHelp:\n-----\n")
         if docstring:
             print(docstring)
         else:
             print("No help is available for this item.")
+
+        # Print schema
+        print("\nSchema:\n-------\n")
+        pp = pprint.PrettyPrinter(indent=4)
+        if hasattr(cls, 'schema'):
+            pp.pprint(cls.schema)
+        else:
+            print("No schema is available for this item.")
+
+        print('')
         return
 
     # We received too much (e.g. s3.actions.foo.bar)

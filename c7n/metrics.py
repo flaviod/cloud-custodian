@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 import logging
 
 from c7n.credentials import SessionFactory
-from c7n.exceptions import ArgumentError
 from c7n.resources import load_resources
 
 log = logging.getLogger('custodian.metrics')

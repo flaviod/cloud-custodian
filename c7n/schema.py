@@ -28,8 +28,6 @@ the utils.type_schema function.
 from collections import Counter
 import json
 import logging
-import yaml
-import inspect
 
 from jsonschema import Draft4Validator as Validator
 from jsonschema.exceptions import best_match
@@ -37,7 +35,6 @@ from jsonschema.exceptions import best_match
 from c7n.manager import resources
 from c7n.resources import load_resources
 from c7n.filters import ValueFilter, EventFilter, AgeFilter
-from c7n.exceptions import ArgumentError
 
 
 def validate(data, schema=None):
@@ -325,35 +322,24 @@ def process_resource(type_name, resource_type, resource_defs):
 def resource_vocabulary():
     vocabulary = {}
     for type_name, resource_type in resources.items():
-        docs = {'actions': {}, 'filters': {}}
+        classes = {'actions': {}, 'filters': {}}
 
         actions = []
         for action_name, cls in resource_type.action_registry.items():
             actions.append(action_name)
-            docs['actions'][action_name] = get_docstring(cls)
+            classes['actions'][action_name] = cls
 
         filters = []
         for filter_name, cls in resource_type.filter_registry.items():
             filters.append(filter_name)
-            docs['filters'][filter_name] = get_docstring(cls)
+            classes['filters'][filter_name] = cls
 
         vocabulary[type_name] = {
             'filters': sorted(filters),
             'actions': sorted(actions),
-            'docs': docs,
+            'classes': classes,
         }
     return vocabulary
-
-
-def get_docstring(starting_class):
-    """ Given a class, return its docstring.
-
-    If no docstring is present for the class, search base classes in MRO for a
-    docstring.
-    """
-    for cls in inspect.getmro(starting_class):
-        if inspect.getdoc(cls):
-            return inspect.getdoc(cls)
 
 
 def summary(vocabulary):
