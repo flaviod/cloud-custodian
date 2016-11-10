@@ -25,8 +25,7 @@ from c7n.credentials import SessionFactory
 from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
 from c7n.metrics import metrics as do_metrics
-from c7n.utils import Bag
-from c7n.exceptions import ArgumentError
+from c7n.utils import Bag, dumps
 from c7n.manager import resources
 from c7n.resources import load_resources
 from c7n import mu, schema, version
@@ -232,15 +231,30 @@ def schema_cmd(options):
     print("Invalid selector '{}'.  Max of 3 components in the "\
           "format RESOURCE.CATEGORY.ITEM".format(options.resource))
     sys.exit(2)
+
+
+def _metrics_get_endpoints(options):
+    """ Determine the start and end dates based on user-supplied options. """
+    if bool(options.start) ^ bool(options.end):
+        print('Error: --start and --end must be specified together')
+        sys.exit(2)
+
+    if options.start and options.end:
+        start = options.start
+        end = options.end
+    else:
+        end = datetime.utcnow()
+        start = end - timedelta(options.days)
+
+    return start, end
     
 
 @policy_command
 def metrics_cmd(options, policies):
-    try:
-        do_metrics(options, policies)
-    except ArgumentError as e:
-        print("Error: " + e.message)
-        sys.exit(2)
+
+    start, end = _metrics_get_endpoints(options)
+    data = do_metrics(start, end, options.period, policies)
+    print dumps(data, indent=2)
 
 
 def cmd_version(options):

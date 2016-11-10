@@ -17,40 +17,17 @@ import logging
 from c7n.credentials import SessionFactory
 from c7n.exceptions import ArgumentError
 from c7n.resources import load_resources
-from c7n.utils import dumps
 
 log = logging.getLogger('custodian.metrics')
 
 
-def metrics(options, policies):
-
-    # Are these lines needed?
-    factory = SessionFactory(
-        options.region, options.profile, options.assume_role)
-    session = factory()
-    client = session.client('cloudwatch')
+def metrics(start, end, period, policies):
 
     load_resources()
-    start, end = get_endpoints(options)
 
     data = {}
     for p in policies:
         log.info('Getting %s metrics', p)
-        data[p.name] = p.get_metrics(start, end, options.period)
+        data[p.name] = p.get_metrics(start, end, period)
 
-    print dumps(data, indent=2)
-
-
-def get_endpoints(options):
-    """ Determine the start and end dates based on user-supplied options. """
-    if bool(options.start) ^ bool(options.end):
-        raise ArgumentError('--start and --end must be specified together')
-
-    if options.start and options.end:
-        start = options.start
-        end = options.end
-    else:
-        end = datetime.utcnow()
-        start = end - timedelta(options.days)
-
-    return start, end
+    return data
