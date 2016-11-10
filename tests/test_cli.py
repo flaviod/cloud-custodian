@@ -23,6 +23,7 @@ from cStringIO import StringIO
 from c7n import cli, version
 
 
+
 class VersionTest(BaseTest):
 
     def test_version(self):
@@ -119,41 +120,131 @@ class SchemaTest(BaseTest):
             exit_code.append(code)
 
         self.patch(sys, 'exit', exit)
+
         # no options
         self.patch(sys, 'argv', ['custodian', 'schema'])
-
         cli.main()
         self.assertEqual(exit_code, [])
+
         # summary option
         self.patch(sys, 'argv', ['custodian', 'schema', '--summary'])
-
         cli.main()
         self.assertEqual(exit_code, [])
+
         # json option
         self.patch(sys, 'argv', ['custodian', 'schema', '--json'])
-
         cli.main()
         self.assertEqual(exit_code, [])
-        # json option
+
+        # with just a resource
         self.patch(sys, 'argv', ['custodian', 'schema', 'ec2'])
-
         cli.main()
         self.assertEqual(exit_code, [])
-        # json option
+
+        # invalid resource
+        #self.patch(sys, 'argv', ['custodian', 'schema', 'fakeresource'])
+        #cli.main()
+        #self.assertEqual(exit_code, [2])
+        #exit_code = []
+
+        # resource.actions
         self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.actions'])
-
         cli.main()
         self.assertEqual(exit_code, [])
-        # json option
+
+        # resource.filters
         self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters'])
-
         cli.main()
         self.assertEqual(exit_code, [])
-        # json option
+
+        # invalid category
+        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.arglbargle'])
+        cli.main()
+        self.assertEqual(exit_code, [2])
+        exit_code = []
+
+        # specific item
         self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters.tag-count'])
-
         cli.main()
         self.assertEqual(exit_code, [])
+
+        # specific item
+        #self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters.nonexistent'])
+        #cli.main()
+        #self.assertEqual(exit_code, [2])
+
+    def get_output(self, argv):
+        """ Run cli.main with the supplied argv and return the output.
+        """
+        
+        # Cache the original sys.stdout so we can restore it later
+        orig_stdout = sys.stdout
+
+        out = StringIO()
+        self.patch(sys, "stdout", out)
+        self.patch(sys, 'argv', argv)
+        cli.main()
+        self.patch(sys, "stdout", orig_stdout)
+
+        return out.getvalue()
+
+    def test_schema_output(self):
+
+        # Override sys.exit
+        exit_code = []
+        def exit(code):
+            exit_code.append(code)
+        self.patch(sys, 'exit', exit)
+
+        output = self.get_output(['custodian', 'schema'])
+        self.assertIn('ec2', output)
+
+        output = self.get_output(['custodian', 'schema', 'ec2'])
+        self.assertIn('actions:', output)
+        self.assertIn('filters:', output)
+
+        output = self.get_output(['custodian', 'schema', 'ec2.filters'])
+        self.assertNotIn('actions:', output)
+        self.assertIn('filters:', output)
+
+        output = self.get_output(['custodian', 'schema', 'ec2.filters.image'])
+        self.assertIn('Help:', output)
+        
+
+class MetricsTest(BaseTest):
+
+    def test_metrics(self):
+        valid_policies = {
+            'policies':
+            [{
+                'name': 'foo',
+                'resource': 'ec2',
+            }]
+        }
+        v = tempfile.NamedTemporaryFile(suffix=".yml")
+        v.write(yaml.dump(valid_policies, Dumper=yaml.SafeDumper))
+        v.flush()
+        self.addCleanup(v.close)
+
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+
+        exit_code = []
+
+        def exit(code):
+            exit_code.append(code)
+
+        self.patch(sys, 'exit', exit)
+
+        # no options
+        self.patch(sys, 'argv', ['custodian', 'metrics', '-c', v.name])
+        cli.main()
+        self.assertEqual(exit_code, [])
+
+        # --start without --end
+        self.patch(sys, 'argv', ['custodian', 'metrics', '-c', v.name, '--start', '1'])
+        cli.main()
+        self.assertEqual(exit_code, [2])
 
 
 class ReportTest(BaseTest):
