@@ -355,7 +355,7 @@ def get_docstring(starting_class):
             return inspect.getdoc(cls)
 
 
-def schema_summary(vocabulary):
+def summary(vocabulary):
     print "resource count: %d" % len(vocabulary)
     action_count = filter_count = 0
 

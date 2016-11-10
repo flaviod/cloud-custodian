@@ -62,8 +62,8 @@ def _extended_default_options(p):
                    help="Cache validity in seconds (Default 60)")
 
 
-def _policy_metrics_options(p):
-    """ Add options specific to policy-metrics subcommand. """
+def _metrics_options(p):
+    """ Add options specific to metrics subcommand. """
     _default_options(p, extended_options=False)
     p.add_argument(
         '--start', type=date_parse, help='Start date (requires --end, overrides --days)')
@@ -141,9 +141,9 @@ def setup_parser():
     logs.set_defaults(command=commands.logs)
     _default_options(logs)
 
-    policy_metrics = subs.add_parser('policy-metrics')
-    policy_metrics.set_defaults(command=commands.policy_metrics)
-    _policy_metrics_options(policy_metrics)
+    metrics = subs.add_parser('metrics')
+    metrics.set_defaults(command=commands.metrics_cmd)
+    _metrics_options(metrics)
 
     version = subs.add_parser('version')
     version.set_defaults(command=commands.cmd_version)
@@ -169,7 +169,7 @@ def setup_parser():
                    "can be passed in the form of RESOURCE[.CATEGORY[.ITEM]], "
                    "e.g.: s3, ebs.actions, or ec2.filters.instance-age")
     schema = subs.add_parser('schema', description=schema_desc)
-    schema.set_defaults(command=commands.schema)
+    schema.set_defaults(command=commands.schema_cmd)
     _schema_options(schema)
 
     #resources = subs.add_parser('resources')

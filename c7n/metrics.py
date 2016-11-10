@@ -19,10 +19,10 @@ from c7n.exceptions import ArgumentError
 from c7n.resources import load_resources
 from c7n.utils import dumps
 
-log = logging.getLogger('custodian.policymetrics')
+log = logging.getLogger('custodian.metrics')
 
 
-def policy_metrics(options, policies):
+def metrics(options, policies):
 
     # Are these lines needed?
     factory = SessionFactory(

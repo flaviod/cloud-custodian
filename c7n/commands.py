@@ -24,16 +24,12 @@ import yaml
 from c7n.credentials import SessionFactory
 from c7n.policy import Policy, load as policy_load
 from c7n.reports import report as do_report
-from c7n.policymetrics import policy_metrics as do_policy_metrics
+from c7n.metrics import metrics as do_metrics
 from c7n.utils import Bag
 from c7n.exceptions import ArgumentError
 from c7n.manager import resources
 from c7n.resources import load_resources
-from c7n.schema import json_dump as schema_json_dump
-from c7n.schema import generate as schema_generate
-from c7n.schema import validate as schema_validate
-from c7n.schema import resource_vocabulary, schema_summary
-from c7n import mu, version
+from c7n import mu, schema, version
 
 
 log = logging.getLogger('custodian.commands')
@@ -60,7 +56,7 @@ def validate(options):
         print('custodian validate: error: no config files specified')
         sys.exit(2)
     used_policy_names = set()
-    schm = schema_generate()
+    schm = schema.generate()
     errors = []
     for config_file in options.configs:
         config_file = os.path.expanduser(config_file)
@@ -75,7 +71,7 @@ def validate(options):
             if format in ('json',):
                 data = json.load(fh)
 
-        errors = schema_validate(data, schm)
+        errors = schema.validate(data, schm)
         conf_policy_names = {p['name'] for p in data.get('policies', ())}
         dupes = conf_policy_names.intersection(used_policy_names)
         if len(dupes) >= 1:
@@ -152,19 +148,19 @@ def logs(options, policies):
             e['message'])
 
 
-def schema(options):
+def schema_cmd(options):
     """
     Output information about the resources, actions and filters available.
     """
     if options.json:
-        schema_json_dump(options.resource)
+        schema.json_dump(options.resource)
         return
         
     load_resources()
-    resource_mapping = resource_vocabulary()
+    resource_mapping = schema.resource_vocabulary()
 
     if options.summary:
-        schema_summary(resource_mapping)
+        schema.summary(resource_mapping)
         return
 
     # Here are the formats for what we accept:
@@ -241,9 +237,9 @@ def schema(options):
     
 
 @policy_command
-def policy_metrics(options, policies):
+def metrics_cmd(options, policies):
     try:
-        do_policy_metrics(options, policies)
+        do_metrics(options, policies)
     except ArgumentError as e:
         print("Error: " + e.message)
         sys.exit(2)
