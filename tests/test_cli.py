@@ -211,42 +211,6 @@ class SchemaTest(BaseTest):
         self.assertIn('Help:', output)
         
 
-class MetricsTest(BaseTest):
-
-    def test_metrics(self):
-        valid_policies = {
-            'policies':
-            [{
-                'name': 'foo',
-                'resource': 'ec2',
-            }]
-        }
-        v = tempfile.NamedTemporaryFile(suffix=".yml")
-        v.write(yaml.dump(valid_policies, Dumper=yaml.SafeDumper))
-        v.flush()
-        self.addCleanup(v.close)
-
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
-
-        exit_code = []
-
-        def exit(code):
-            exit_code.append(code)
-
-        self.patch(sys, 'exit', exit)
-
-        # no options
-        self.patch(sys, 'argv', ['custodian', 'metrics', '-c', v.name])
-        cli.main()
-        self.assertEqual(exit_code, [])
-
-        # --start without --end
-        self.patch(sys, 'argv', ['custodian', 'metrics', '-c', v.name, '--start', '1'])
-        cli.main()
-        self.assertEqual(exit_code, [2])
-
-
 class ReportTest(BaseTest):
 
     def test_report(self):

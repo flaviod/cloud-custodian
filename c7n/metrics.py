@@ -11,10 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import datetime, timedelta
 import logging
 
-from c7n.credentials import SessionFactory
 from c7n.resources import load_resources
 
 log = logging.getLogger('custodian.metrics')

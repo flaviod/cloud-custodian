@@ -280,6 +280,12 @@ def _metrics_get_endpoints(options):
 def metrics_cmd(options, policies):
 
     start, end = _metrics_get_endpoints(options)
+
+    factory = SessionFactory(
+        options.region, options.profile, options.assume_role)
+    session = factory()
+    client = session.client('cloudwatch')
+
     data = do_metrics(start, end, options.period, policies)
     print dumps(data, indent=2)
 
