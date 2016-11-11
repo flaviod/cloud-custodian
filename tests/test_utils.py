@@ -15,6 +15,8 @@ import json
 import unittest
 import time
 
+from datetime import datetime, timedelta
+from dateutil.tz import tzutc
 from botocore.exceptions import ClientError
 import ipaddress
 
@@ -215,3 +217,36 @@ class UtilTest(unittest.TestCase):
             utils.parse_s3('s3://things'),
             ('s3://things', 'things', ''),
         )
+
+    def test_datetime_from_value(self):
+        dfv = utils.datetime_from_value
+        now = datetime.now(tz=tzutc())
+        next_week = now + timedelta(days=7)
+        # datetime objects should come back unchanged
+        self.assertIs(dfv(now), now)
+        self.assertIs(dfv(next_week), next_week)
+        # strings should be parsed
+        self.assertIsInstance(dfv('90 days'), datetime)
+        # garbage string (ValueError) should return now
+        bad_date = dfv('not a date')
+        # won't quite match the local "now" since milliseconds have passed
+        # just make sure it's close (less than a second apart)
+        delta = bad_date - now
+        self.assertLess(delta.seconds, 1)
+        # non string (TypeError) should return now
+        bad_date = dfv(25)
+        delta = bad_date - now
+        self.assertLess(delta.seconds, 1)
+        # garbage string with custom default
+        self.assertIs(dfv('not a date', next_week), next_week)
+
+    def test_int_from_value(self):
+        ifv = utils.int_from_value
+        # integer should come back unchanged
+        self.assertEqual(ifv(25), 25)
+        # string containing an int should get converted
+        self.assertEqual(ifv('25'), 25)
+        # string with no int should return default
+        self.assertEqual(ifv('no int'), 0)
+        # string with no int, cutom default value
+        self.assertEqual(ifv('no int', default=10), 10)
