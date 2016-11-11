@@ -241,7 +241,8 @@ def schema_cmd(options):
         if docstring:
             print(docstring)
         else:
-            print("No help is available for this item.")
+            # Shouldn't ever hit this, so exclude from cover
+            print("No help is available for this item.")  # pragma: no cover
 
         # Print schema
         print("\nSchema:\n-------\n")
@@ -249,7 +250,8 @@ def schema_cmd(options):
         if hasattr(cls, 'schema'):
             pp.pprint(cls.schema)
         else:
-            print("No schema is available for this item.")
+            # Shouldn't ever hit this, so exclude from cover
+            print("No schema is available for this item.")  # pragma: no cover
 
         print('')
         return

@@ -23,18 +23,80 @@ from cStringIO import StringIO
 from c7n import cli, version
 
 
+class CliTest(BaseTest):
+    """ A subclass of BaseTest with some handy functions for CLI related tests. """
 
-class VersionTest(BaseTest):
+    def write_policy_file(self, policy, format='yaml'):
+        """ Write a policy file to disk in the specified format.
+        
+        Input a dictionary and a format. Valid formats are `yaml` and `json`
+        Returns the file path.
+        """
+        suffix = "." + format
+        file = tempfile.NamedTemporaryFile(suffix=suffix)
+        if format == 'json':
+            json.dump(policy, file)
+        else:
+            file.write(yaml.dump(policy, Dumper=yaml.SafeDumper))
 
-    def test_version(self):
-        self.patch(sys, "argv", ['custodian', 'version'])
+        file.flush()
+        self.addCleanup(file.close)
+        return file.name
+
+    def get_temp_dir(self):
+        """ Return a temporary directory that will get cleaned up. """
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+        return temp_dir
+
+    def get_output(self, argv):
+        """ Run cli.main with the supplied argv and return the output. """
+        
+        # Cache the original sys.stdout so we can restore it later.
+        # This is useful for using pdb when debugging tests.
+        orig_stdout = sys.stdout
+
         out = StringIO()
         self.patch(sys, "stdout", out)
-        cli.main()
-        self.assertEqual(out.getvalue().strip(), version.version)
+        self.run_and_expect_success(argv)
+        self.patch(sys, "stdout", orig_stdout)
+
+        return out.getvalue()
+
+    def run_and_expect_success(self, argv):
+        """ Run cli.main() with supplied argv and expect normal execution. """
+        self.patch(sys, 'argv', argv)
+        try:
+            cli.main()
+        except SystemExit as e:
+            self.fail('Expected sys.exit would not be called. Exit code was ({})'.format(e.message))
+
+    def run_and_expect_failure(self, argv, exit_code):
+        """ Run cli.main() with supplied argv and expect exit_code. """
+        self.patch(sys, 'argv', argv)
+        with self.assertRaises(SystemExit) as cm:
+            cli.main()
+        self.assertEqual(cm.exception.code, exit_code)
+        
+    def run_and_expect_exception(self, argv, exception):
+        """ Run cli.main() with supplied argv and expect supplied exception. """
+        self.patch(sys, 'argv', argv)
+        try:
+            cli.main()
+        except exception:
+            return
+        
+        self.fail('Error: did not raise {}.'.format(exception))
 
 
-class ValidateTest(BaseTest):
+class VersionTest(CliTest):
+
+    def test_version(self):
+        output = self.get_output(['custodian', 'version'])
+        self.assertEqual(output.strip(), version.version)
+
+
+class ValidateTest(CliTest):
 
     def test_validate(self):
         invalid_policies = {
@@ -46,41 +108,20 @@ class ValidateTest(BaseTest):
                 'actions': [{'type': 'untag', 'tags': ['custodian_cleanup']}],
             }]
         }
-        t = tempfile.NamedTemporaryFile(suffix=".yml")
-        t.write(yaml.dump(invalid_policies, Dumper=yaml.SafeDumper))
-        t.flush()
-        self.addCleanup(t.close)
-        j = tempfile.NamedTemporaryFile(suffix=".json")
-        json.dump(invalid_policies, j)
-        j.flush()
-        self.addCleanup(j.close)
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
+        yaml_file = self.write_policy_file(invalid_policies)
+        json_file = self.write_policy_file(invalid_policies, format='json')
 
-        exit_code = []
-
-        def exit(code):
-            exit_code.append(code)
-
-        self.patch(sys, 'exit', exit)
         # YAML validation
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', t.name])
-        cli.main()
+        self.run_and_expect_failure(['custodian', 'validate', yaml_file], 1)
+
         # JSON validation
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', j.name])
-        cli.main()
+        self.run_and_expect_failure(['custodian', 'validate', json_file], 1)
+
         # no config files given
-        self.patch(sys, 'argv', [
-            'custodian', 'validate'])
-        cli.main()
-        self.assertEqual(exit_code, [1, 1, 2])
+        self.run_and_expect_failure(['custodian', 'validate'], 2)
 
         # nonexistent file given
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', 'fake.yaml'])
-        self.assertRaises(ValueError, cli.main)
+        self.run_and_expect_exception(['custodian', 'validate', 'fake.yaml'], ValueError)
 
         valid_policies = {
             'policies':
@@ -91,110 +132,57 @@ class ValidateTest(BaseTest):
                 'actions': [{'type': 'tag', 'tags': ['custodian_cleanup']}],
             }]
         }
-        v = tempfile.NamedTemporaryFile(suffix=".yml")
-        v.write(yaml.dump(valid_policies, Dumper=yaml.SafeDumper))
-        v.flush()
-        self.addCleanup(v.close)
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', v.name])
-        cli.main()
-        self.assertEqual(exit_code, [1, 1, 2])
+        yaml_file = self.write_policy_file(valid_policies)
+
+        self.run_and_expect_success(['custodian', 'validate', yaml_file])
+
         # legacy -c option
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', '-c', v.name])
-        cli.main()
-        self.assertEqual(exit_code, [1, 1, 2])
+        self.run_and_expect_success(['custodian', 'validate', '-c', yaml_file])
+
         # duplicate policy names
-        self.patch(sys, 'argv', [
-            'custodian', 'validate', v.name, v.name])
-        cli.main()
-        self.assertEqual(exit_code, [1, 1, 2, 1])
+        self.run_and_expect_failure(['custodian', 'validate', yaml_file, yaml_file], 1)
 
 
-class SchemaTest(BaseTest):
+class SchemaTest(CliTest):
 
     def test_schema(self):
-        exit_code = []
-
-        def exit(code):
-            exit_code.append(code)
-
-        self.patch(sys, 'exit', exit)
 
         # no options
-        self.patch(sys, 'argv', ['custodian', 'schema'])
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'schema'])
 
         # summary option
-        self.patch(sys, 'argv', ['custodian', 'schema', '--summary'])
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'schema', '--summary'])
 
         # json option
-        self.patch(sys, 'argv', ['custodian', 'schema', '--json'])
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'schema', '--json'])
 
         # with just a resource
-        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2'])
-        cli.main()
-        self.assertEqual(exit_code, [])
-
-        # invalid resource
-        #self.patch(sys, 'argv', ['custodian', 'schema', 'fakeresource'])
-        #cli.main()
-        #self.assertEqual(exit_code, [2])
-        #exit_code = []
+        self.run_and_expect_success(['custodian', 'schema', 'ec2'])
 
         # resource.actions
-        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.actions'])
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'schema', 'ec2.actions'])
 
         # resource.filters
-        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters'])
-        cli.main()
-        self.assertEqual(exit_code, [])
-
-        # invalid category
-        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.arglbargle'])
-        cli.main()
-        self.assertEqual(exit_code, [2])
-        exit_code = []
+        self.run_and_expect_success(['custodian', 'schema', 'ec2.filters'])
 
         # specific item
-        self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters.tag-count'])
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'schema', 'ec2.filters.tag-count'])
 
-        # specific item
-        #self.patch(sys, 'argv', ['custodian', 'schema', 'ec2.filters.nonexistent'])
-        #cli.main()
-        #self.assertEqual(exit_code, [2])
+    def test_invalid_options(self):
 
-    def get_output(self, argv):
-        """ Run cli.main with the supplied argv and return the output.
-        """
+        # invalid resource
+        self.run_and_expect_failure(['custodian', 'schema', 'fakeresource'], 2)
         
-        # Cache the original sys.stdout so we can restore it later
-        orig_stdout = sys.stdout
+        # invalid category
+        self.run_and_expect_failure(['custodian', 'schema', 'ec2.arglbargle'], 2)
+        
+        # invalid item
+        self.run_and_expect_failure(['custodian', 'schema', 'ec2.filters.nonexistent'], 2)
 
-        out = StringIO()
-        self.patch(sys, "stdout", out)
-        self.patch(sys, 'argv', argv)
-        cli.main()
-        self.patch(sys, "stdout", orig_stdout)
-
-        return out.getvalue()
+        # invalid number of selectors
+        self.run_and_expect_failure(['custodian', 'schema', 'ec2.filters.and.foo'], 2)
 
     def test_schema_output(self):
-
-        # Override sys.exit
-        exit_code = []
-        def exit(code):
-            exit_code.append(code)
-        self.patch(sys, 'exit', exit)
 
         output = self.get_output(['custodian', 'schema'])
         self.assertIn('ec2', output)
@@ -211,7 +199,7 @@ class SchemaTest(BaseTest):
         self.assertIn('Help:', output)
         
 
-class ReportTest(BaseTest):
+class ReportTest(CliTest):
 
     def test_report(self):
         valid_policies = {
@@ -223,35 +211,26 @@ class ReportTest(BaseTest):
                 'actions': [{'type': 'tag', 'tags': ['custodian_cleanup']}],
             }]
         }
-        v = tempfile.NamedTemporaryFile(suffix=".yml")
-        v.write(yaml.dump(valid_policies, Dumper=yaml.SafeDumper))
-        v.flush()
-        self.addCleanup(v.close)
+        yaml_file = self.write_policy_file(valid_policies)
+        temp_dir = self.get_temp_dir()
 
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
-        exit_code = []
-
-        def exit(code):
-            exit_code.append(code)
-
-        self.patch(sys, 'exit', exit)
-        self.patch(
-            sys,
-            'argv',
-            ['custodian', 'report', '-c', v.name, '-s', temp_dir]
-        )
-        cli.main()
-        self.assertEqual(exit_code, [])
+        self.run_and_expect_success(['custodian', 'report', '-c', yaml_file, '-s', temp_dir])
 
         # empty file
-        e = tempfile.NamedTemporaryFile(suffix=".yml")
-        e.write(yaml.dump({'policies': []}, Dumper=yaml.SafeDumper))
-        e.flush()
-        self.addCleanup(e.close)
-        self.patch(
-            sys,
-            'argv',
-            ['custodian', 'logs', '-c', e.name, '-s', temp_dir]
-        )
-        self.assertRaises(AssertionError, cli.main)
+        empty_policies = {'policies': []}
+        yaml_file = self.write_policy_file(empty_policies)
+        self.run_and_expect_exception([
+                'custodian', 'report', '-c', yaml_file, '-s', temp_dir], AssertionError)
+
+
+class LogsTest(CliTest):
+
+    def test_logs(self):
+
+        temp_dir = self.get_temp_dir()
+
+        # empty file
+        empty_policies = {'policies': []}
+        yaml_file = self.write_policy_file(empty_policies)
+        self.run_and_expect_exception([
+                'custodian', 'report', '-c', yaml_file, '-s', temp_dir], AssertionError)
