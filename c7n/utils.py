@@ -15,6 +15,8 @@ from botocore.exceptions import ClientError
 
 import copy
 from datetime import datetime
+from dateutil.tz import tzutc
+from dateutil.parser import parse
 import functools
 import json
 import itertools
@@ -343,3 +345,27 @@ def worker(f):
             raise
     functools.update_wrapper(_f, f)
     return _f
+
+
+def int_from_value(raw_val, default=0):
+    if isinstance(raw_val, int):
+        return raw_val
+
+    try:
+        value = int(raw_val)
+    except ValueError:
+        value = default
+    return value
+
+
+def datetime_from_value(raw_val, default=None):
+    if isinstance(raw_val, datetime):
+        return raw_val
+
+    if default is None:
+        default = datetime.now(tz=tzutc())
+    try:
+        value = parse(raw_val)
+    except (AttributeError, TypeError):
+        value = default
+    return value

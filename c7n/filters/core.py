@@ -29,7 +29,13 @@ import ipaddress
 from c7n.executor import ThreadPoolExecutor
 from c7n.registry import PluginRegistry
 from c7n.resolver import ValuesFrom
-from c7n.utils import set_annotation, type_schema, parse_cidr
+from c7n.utils import (
+    set_annotation,
+    type_schema,
+    parse_cidr,
+    datetime_from_value,
+    int_from_value,
+)
 
 
 class FilterValidationError(Exception): pass
@@ -326,10 +332,7 @@ class ValueFilter(Filter):
             return sentinel, value.strip().lower()
 
         elif self.vtype == 'integer':
-            try:
-                value = int(value.strip())
-            except ValueError:
-                value = 0
+            value = int_from_value(value.strip())
         elif self.vtype == 'size':
             try:
                 return sentinel, len(value)
@@ -341,29 +344,15 @@ class ValueFilter(Filter):
             if not isinstance(sentinel, datetime):
                 sentinel = datetime.now(tz=tzutc()) - timedelta(sentinel)
 
-            if not isinstance(value, datetime):
-                # EMR bug when testing ages in EMR. This is due to
-                # EMR not having more functionality.
-                try:
-                    value = parse(value)
-                except (AttributeError, TypeError):
-                    value = 0
+            value = datetime_from_value(value, default=0)
             # Reverse the age comparison, we want to compare the value being
             # greater than the sentinel typically. Else the syntax for age
             # comparisons is intuitively wrong.
             return value, sentinel
         elif self.vtype == 'age_in_days':
             now = datetime.now(tz=tzutc())
-            if not isinstance(sentinel, int):
-                try:
-                    sentinel = int(sentinel)
-                except ValueError:
-                    sentinel = 0
-            if not isinstance(value, datetime):
-                try:
-                    value = parse(value)
-                except (AttributeError, TypeError):
-                    value = now
+            sentinel = int_from_value(sentinel)
+            value = datetime_from_value(value)
             delta = now - value
             return sentinel, delta.days
         elif self.vtype == 'cidr':
@@ -385,22 +374,13 @@ class ValueFilter(Filter):
             if not isinstance(sentinel, datetime):
                 sentinel = datetime.now(tz=tzutc()) + timedelta(sentinel)
 
-            if not isinstance(value, datetime):
-                value = parse(value)
+            value = datetime_from_value(value)
 
             return sentinel, value
         elif self.vtype == 'day':
-            if not isinstance(sentinel, int):
-                try:
-                    sentinel = int(sentinel)
-                except ValueError:
-                    sentinel = 0
+            sentinel = int_from_value(sentinel)
 
-            if not isinstance(value, datetime):
-                try:
-                    value = parse(value)
-                except (AttributeError, TypeError):
-                    value = 0
+            value = datetime_from_value(value, default=0)
             if isinstance(value, datetime):
                 value = value.day
             return value, sentinel
