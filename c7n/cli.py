@@ -22,12 +22,21 @@ from dateutil.parser import parse as date_parse
 
 from c7n import commands, resources
 
+DEFAULT_REGION = 'us-east-1'
 
-def _default_options(p, extended_options=True):
-    p.add_argument(
-        "-r", "--region",
-        default=os.environ.get('AWS_DEFAULT_REGION', "us-east-1"),
-        help="AWS Region to target (Default: us-east-1)")
+
+def _default_options(p, blacklist=""):
+    """ Add basic options ot the subparser.
+    
+    `blacklist` is a list of options to exclude from the default set.
+    e.g.: ['region', 'log-group']
+    """
+    if 'region' not in blacklist:
+        p.add_argument(
+            "-r", "--region",
+            default=os.environ.get('AWS_DEFAULT_REGION', DEFAULT_REGION),
+            help="AWS Region to target (Default: %(default)s)")
+
     p.add_argument(
         "--profile",
         help="AWS Account Config File Profile to utilize")
@@ -46,25 +55,48 @@ def _default_options(p, extended_options=True):
     p.add_argument("--debug", action="store_true",
                    help="Dev Debug")
 
-    if extended_options:
-        _extended_default_options(p)
+    if 'log-group' not in blacklist:
+        p.add_argument(
+            "-l", "--log-group", default=None,
+            help="Cloudwatch Log Group to send policy logs")
+
+    if 'output-dir' not in blacklist:
+        p.add_argument("-s", "--output-dir", required=True,
+                       help="Directory or S3 URL For Policy Output")
+        
+    if 'cache' not in blacklist:
+        p.add_argument("-f", "--cache", default="~/.cache/cloud-custodian.cache")
+        p.add_argument("--cache-period", default=60, type=int,
+                       help="Cache validity in seconds (Default %(default)i)")
 
 
-def _extended_default_options(p):
+def _report_options(p):
+    """ Add options specific to the report subcommand. """
+    p.set_defaults(command=commands.report)
+    _default_options(p, blacklist=['region'])
     p.add_argument(
-        "-l", "--log-group", default=None,
-        help="Cloudwatch Log Group to send policy logs")
+        '--days', type=float, default=1,
+        help="Number of days of history to consider")
+    p.add_argument(
+        '--raw', type=argparse.FileType('wb'),
+        help="Store raw json of collected records to given file path")
+    p.add_argument(
+        '--field', action='append', default=[], type=_key_val_pair,
+        metavar='HEADER=FIELD',
+        help='Repeatable. JMESPath of field to include in the output OR '\
+            'for a tag use prefix `tag:`')
+    p.add_argument(
+        '--no-default-fields', action="store_true",
+        help='Exclude default fields for report.')
 
-    p.add_argument("-s", "--output-dir", required=True,
-                   help="Directory or S3 URL For Policy Output")
-    p.add_argument("-f", "--cache", default="~/.cache/cloud-custodian.cache")
-    p.add_argument("--cache-period", default=60, type=int,
-                   help="Cache validity in seconds (Default 60)")
+    # We don't include `region` because the report command ignores it
+    p.add_argument("--region", default=DEFAULT_REGION, help=argparse.SUPPRESS)
 
 
 def _metrics_options(p):
     """ Add options specific to metrics subcommand. """
-    _default_options(p, extended_options=False)
+    _default_options(p, blacklist=['log-group', 'output-dir', 'cache'])
+
     p.add_argument(
         '--start', type=date_parse, help='Start date (requires --end, overrides --days)')
     p.add_argument(
@@ -120,22 +152,7 @@ def setup_parser():
     subs = parser.add_subparsers(dest='subparser')
 
     report = subs.add_parser("report")
-    report.set_defaults(command=commands.report)
-    _default_options(report)
-    report.add_argument(
-        '--days', type=float, default=1,
-        help="Number of days of history to consider")
-    report.add_argument(
-        '--raw', type=argparse.FileType('wb'),
-        help="Store raw json of collected records to given file path")
-    report.add_argument(
-        '--field', action='append', default=[], type=_key_val_pair,
-        metavar='HEADER=FIELD',
-        help='Repeatable. JMESPath of field to include in the output OR '\
-            'for a tag use prefix `tag:`')
-    report.add_argument(
-        '--no-default-fields', action="store_true",
-        help='Exclude default fields for report.')
+    _report_options(report)
 
     logs = subs.add_parser('logs')
     logs.set_defaults(command=commands.logs)
