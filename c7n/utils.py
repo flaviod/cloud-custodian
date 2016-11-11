@@ -366,6 +366,6 @@ def datetime_from_value(raw_val, default=None):
         default = datetime.now(tz=tzutc())
     try:
         value = parse(raw_val)
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError, ValueError):
         value = default
     return value
