@@ -14,6 +14,7 @@
 """AWS Account as a custodian resource.
 """
 
+from botocore.exceptions import ClientError
 from datetime import datetime, timedelta
 
 from dateutil.parser import parse as parse_date
@@ -400,3 +401,89 @@ class RecordStop(BaseAction):
                     client.stop_configuration_recorder,
                     ConfigurationRecorderName=rec['name'],
                 )
+
+
+@actions.register('logging-start')
+class LoggingStart(BaseAction):
+    """Enables CloudTrail logging for listed trail(s)
+
+    :Example:
+
+    .. code-block: yaml
+
+        policies:
+          - name: config-start-logging
+            resource: account
+            actions:
+              - type: logging-start
+                trails:
+                  - trail-one
+                  - trail-two
+    """
+
+    schema = type_schema(
+        'logging-start',
+        trails={'type': 'array', 'items': {'type': 'string'}},
+        required=('trails',),
+    )
+
+    def process(self, accounts):
+        trails = self.data.get('trails')
+        client = local_session(
+            self.manager.session_factory).client('cloudtrail')
+        retry = get_retry(
+            ('RequestLimitExceeded', 'Client.RequestLimitExceeded'),
+            max_attempts=5,
+        )
+        for trail in trails:
+            try:
+                retry(client.start_logging, Name=trail)
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'TrailNotFoundException':
+                    self.log.exception(
+                        "Error while starting logging: %s",
+                        e.response['Error']['Message'],
+                    )
+
+
+@actions.register('logging-stop')
+class LoggingStop(BaseAction):
+    """Disables CloudTrail logging for listed trail(s)
+
+    :Example:
+
+    .. code-block: yaml
+
+        policies:
+          - name: config-stop-logging
+            resource: account
+            actions:
+              - type: logging-stop
+                trails:
+                  - trail-one
+                  - trail-two
+    """
+
+    schema = type_schema(
+        'logging-stop',
+        trails={'type': 'array', 'items': {'type': 'string'}},
+        required=('trails',),
+    )
+
+    def process(self, accounts):
+        trails = self.data.get('trails')
+        client = local_session(
+            self.manager.session_factory).client('cloudtrail')
+        retry = get_retry(
+            ('RequestLimitExceeded', 'Client.RequestLimitExceeded'),
+            max_attempts=5,
+        )
+        for trail in trails:
+            try:
+                retry(client.stop_logging, Name=trail)
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'TrailNotFoundException':
+                    self.log.exception(
+                        "Error while stoping logging: %s",
+                        e.response['Error']['Message'],
+                    )
