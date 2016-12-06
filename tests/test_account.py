@@ -155,4 +155,54 @@ class AccountTests(BaseTest):
         resources = p.run()
         self.assertEqual(len(resources), 0)
 
+    def test_recording_actions(self):
+        session_factory = self.replay_flight_data('test_account_recording')
+        off_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': ['record-stop'],
+            },
+            session_factory=session_factory,
+        )
+        resources = off_p.run()
+        self.assertEqual(len(resources), 1)
+        on_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': ['record-start'],
+            },
+            session_factory=session_factory,
+        )
+        resources = on_p.run()
+        self.assertEqual(len(resources), 1)
 
+    def test_logging_actions(self):
+        session_factory = self.replay_flight_data('test_account_logging')
+        off_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': [{
+                    'type': 'logging-stop',
+                    'trails': ['skunk-trails'],
+                }],
+            },
+            session_factory=session_factory,
+        )
+        resources = off_p.run()
+        self.assertEqual(len(resources), 1)
+        on_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': [{
+                    'type': 'logging-start',
+                    'trails': ['skunk-trails'],
+                }],
+            },
+            session_factory=session_factory,
+        )
+        resources = on_p.run()
+        self.assertEqual(len(resources), 1)
