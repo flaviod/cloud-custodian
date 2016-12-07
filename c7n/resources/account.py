@@ -444,6 +444,7 @@ class LoggingStart(BaseAction):
                         "Error while starting logging: %s",
                         e.response['Error']['Message'],
                     )
+                raise
 
 
 @actions.register('logging-stop')
@@ -487,3 +488,4 @@ class LoggingStop(BaseAction):
                         "Error while stoping logging: %s",
                         e.response['Error']['Message'],
                     )
+                raise
