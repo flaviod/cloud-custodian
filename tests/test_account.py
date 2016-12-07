@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from botocore.exceptions import ClientError
 from common import BaseTest
 
 
@@ -206,3 +207,30 @@ class AccountTests(BaseTest):
         )
         resources = on_p.run()
         self.assertEqual(len(resources), 1)
+
+    def test_logging_fail(self):
+        session_factory = self.replay_flight_data('test_account_logging_fail')
+        off_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': [{
+                    'type': 'logging-stop',
+                    'trails': ['invalid'],
+                }],
+            },
+            session_factory=session_factory,
+        )
+        self.assertRaises(ClientError, off_p.run)
+        on_p = self.load_policy(
+            {
+                'resource': 'account',
+                'name': 'account-test',
+                'actions': [{
+                    'type': 'logging-start',
+                    'trails': ['invalid'],
+                }],
+            },
+            session_factory=session_factory,
+        )
+        self.assertRaises(ClientError, on_p.run)
