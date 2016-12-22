@@ -226,7 +226,7 @@ def determine_default_region():
     If the region is not specified on the command line we will use a default.
 
     The priority order for determining this is:
-     - AWS_DEFAULT_REGION command line variable
+     - AWS_DEFAULT_REGION environment variable
      - region defined in ~/.aws/config
      - The DEFAULT_REGION defined at the top of this file
     """
