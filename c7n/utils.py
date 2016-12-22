@@ -329,7 +329,8 @@ def read_aws_config_file(file=None):
     """ Read the AWS config file and return the config """
 
     if file is None:
-        file = os.path.expanduser(os.path.join('~', '.aws', 'config'))
+        file = os.environ.get('AWS_CONFIG_FILE',
+                              os.path.expanduser('~/.aws/config'))
 
     config = ConfigParser()
     config.read([file])

@@ -227,7 +227,8 @@ def determine_default_region():
 
     The priority order for determining this is:
      - AWS_DEFAULT_REGION environment variable
-     - region defined in ~/.aws/config
+     - region defined in the file pointed to by AWS_CONFIG_FILE env variable
+       (the default for this file is ~/.aws/config)
      - The DEFAULT_REGION defined at the top of this file
     """
     env_key = 'AWS_DEFAULT_REGION'
