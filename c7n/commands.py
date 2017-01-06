@@ -119,7 +119,7 @@ def run(options, policies):
         try:
             policy()
         except Exception:
-            exit_code = 1
+            exit_code = 2
             if options.debug:
                 raise
             log.exception(
