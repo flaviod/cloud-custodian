@@ -245,21 +245,74 @@ class ReportTest(CliTest):
         # empty file
         empty_policies = {'policies': []}
         yaml_file = self.write_policy_file(empty_policies)
-        self.run_and_expect_exception(
+        self.run_and_expect_failure(
             ['custodian', 'report', '-c', yaml_file, '-s', temp_dir],
-            AssertionError)
+            2)
+
+        # more than 1 policy
+        policies = {
+            'policies': [
+                {'name': 'foo', 'resource': 's3'},
+                { 'name': 'bar', 'resource': 'ec2'},
+            ]
+        }
+        yaml_file = self.write_policy_file(policies)
+        self.run_and_expect_failure(
+            ['custodian', 'report', '-c', yaml_file, '-s', temp_dir],
+            2)
+
+    def test_warning_on_empty_policy_filter(self):
+        """
+        This test is to examine the warning output supplied when -p is used and
+        the resulting policy set is empty.  It is not specific to the `report`
+        subcommand - it is also used by `run` and a few other subcommands.
+        """
+        policy_name = 'test-policy'
+        valid_policies = {
+            'policies':
+            [{
+                'name': policy_name,
+                'resource': 's3',
+                'filters': [{"tag:custodian_tagging": "not-null"}],
+            }]
+        }
+        yaml_file = self.write_policy_file(valid_policies)
+        temp_dir = self.get_temp_dir()
+
+        bad_policy_name = policy_name + '-nonexistent'
+        _, err = self.run_and_expect_failure(
+            ['custodian', 'report', '-c', yaml_file, '-s', temp_dir, '-p', bad_policy_name], 
+            2)
+        
+        self.assertIn('Warning', err)
+        self.assertIn(policy_name, err)
 
 
 class LogsTest(CliTest):
 
     def test_logs(self):
         temp_dir = self.get_temp_dir()
-        # empty file
+
+        # Test 1 - empty file
         empty_policies = {'policies': []}
         yaml_file = self.write_policy_file(empty_policies)
-        self.run_and_expect_exception(
+        self.run_and_expect_failure(
             ['custodian', 'logs', '-c', yaml_file, '-s', temp_dir],
-            AssertionError)
+            2)
+
+        # Test 2 - more than one policy
+        policies = {
+            'policies': [
+                {'name': 'foo', 'resource': 's3'},
+                { 'name': 'bar', 'resource': 'ec2'},
+            ]
+        }
+        yaml_file = self.write_policy_file(policies)
+        self.run_and_expect_failure(
+            ['custodian', 'logs', '-c', yaml_file, '-s', temp_dir],
+            2)
+
+        # Test 3 - successful test
         p_data = {
             'name': 'test-policy',
             'resource': 'rds',
