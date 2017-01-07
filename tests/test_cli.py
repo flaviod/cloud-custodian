@@ -135,7 +135,7 @@ class ValidateTest(CliTest):
         self.run_and_expect_failure(['custodian', 'validate', json_file], 1)
 
         # no config files given
-        self.run_and_expect_failure(['custodian', 'validate'], 2)
+        self.run_and_expect_failure(['custodian', 'validate'], 1)
 
         # nonexistent file given
         self.run_and_expect_exception(
@@ -192,19 +192,19 @@ class SchemaTest(CliTest):
     def test_invalid_options(self):
 
         # invalid resource
-        self.run_and_expect_failure(['custodian', 'schema', 'fakeresource'], 2)
+        self.run_and_expect_failure(['custodian', 'schema', 'fakeresource'], 1)
 
         # invalid category
         self.run_and_expect_failure(
-            ['custodian', 'schema', 'ec2.arglbargle'], 2)
+            ['custodian', 'schema', 'ec2.arglbargle'], 1)
 
         # invalid item
         self.run_and_expect_failure(
-            ['custodian', 'schema', 'ec2.filters.nonexistent'], 2)
+            ['custodian', 'schema', 'ec2.filters.nonexistent'], 1)
 
         # invalid number of selectors
         self.run_and_expect_failure(
-            ['custodian', 'schema', 'ec2.filters.and.foo'], 2)
+            ['custodian', 'schema', 'ec2.filters.and.foo'], 1)
 
     def test_schema_output(self):
 
@@ -247,7 +247,7 @@ class ReportTest(CliTest):
         yaml_file = self.write_policy_file(empty_policies)
         self.run_and_expect_failure(
             ['custodian', 'report', '-c', yaml_file, '-s', temp_dir],
-            2)
+            1)
 
         # more than 1 policy
         policies = {
@@ -259,7 +259,7 @@ class ReportTest(CliTest):
         yaml_file = self.write_policy_file(policies)
         self.run_and_expect_failure(
             ['custodian', 'report', '-c', yaml_file, '-s', temp_dir],
-            2)
+            1)
 
     def test_warning_on_empty_policy_filter(self):
         """
@@ -282,7 +282,7 @@ class ReportTest(CliTest):
         bad_policy_name = policy_name + '-nonexistent'
         _, err = self.run_and_expect_failure(
             ['custodian', 'report', '-c', yaml_file, '-s', temp_dir, '-p', bad_policy_name], 
-            2)
+            1)
         
         self.assertIn('Warning', err)
         self.assertIn(policy_name, err)
@@ -298,7 +298,7 @@ class LogsTest(CliTest):
         yaml_file = self.write_policy_file(empty_policies)
         self.run_and_expect_failure(
             ['custodian', 'logs', '-c', yaml_file, '-s', temp_dir],
-            2)
+            1)
 
         # Test 2 - more than one policy
         policies = {
@@ -310,7 +310,7 @@ class LogsTest(CliTest):
         yaml_file = self.write_policy_file(policies)
         self.run_and_expect_failure(
             ['custodian', 'logs', '-c', yaml_file, '-s', temp_dir],
-            2)
+            1)
 
         # Test 3 - successful test
         p_data = {
