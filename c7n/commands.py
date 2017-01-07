@@ -65,7 +65,7 @@ def validate(options):
         # no configs to test
         # We don't have the parser object, so fake ArgumentParser.error
         eprint('Error: no config files specified')
-        sys.exit(2)
+        sys.exit(1)
     used_policy_names = set()
     schm = schema.generate()
     errors = []
@@ -132,11 +132,11 @@ def run(options, policies):
 def report(options, policies):
     if len(policies) == 0:
         eprint("Error: No policy supplied")
-        sys.exit(2)
+        sys.exit(1)
 
     if len(policies) > 1:
         eprint("Error: Report subcommand can only operate on one policy")
-        sys.exit(2)
+        sys.exit(1)
     
     policy = policies.pop()
     d = datetime.now()
@@ -151,11 +151,11 @@ def report(options, policies):
 def logs(options, policies):
     if len(policies) == 0:
         eprint("Error: No policy supplied")
-        sys.exit(2)
+        sys.exit(1)
 
     if len(policies) > 1:
         eprint("Error: Log subcommand can only operate on one policy")
-        sys.exit(2)
+        sys.exit(1)
 
     policy = policies.pop()
 
@@ -218,7 +218,7 @@ def schema_cmd(options):
     resource = components[0].lower()
     if resource not in resource_mapping:
         eprint('Error: {} is not a valid resource'.format(resource))
-        sys.exit(2)
+        sys.exit(1)
 
     if len(components) == 1:
         del(resource_mapping[resource]['classes'])
@@ -233,7 +233,7 @@ def schema_cmd(options):
     if category not in ('actions', 'filters'):
         eprint(("Error: Valid choices are 'actions' and 'filters'."
                 " You supplied '{}'").format(category))
-        sys.exit(2)
+        sys.exit(1)
 
     if len(components) == 2:
         output = "No {} available for resource {}.".format(category, resource)
@@ -250,7 +250,7 @@ def schema_cmd(options):
     if item not in resource_mapping[resource][category]:
         eprint('Error: {} is not in the {} list for resource {}'.format(
                 item, category, resource))
-        sys.exit(2)
+        sys.exit(1)
 
     if len(components) == 3:
         cls = resource_mapping[resource]['classes'][category][item]
@@ -278,14 +278,14 @@ def schema_cmd(options):
     # We received too much (e.g. s3.actions.foo.bar)
     eprint("Invalid selector '{}'.  Max of 3 components in the "
            "format RESOURCE.CATEGORY.ITEM".format(options.resource))
-    sys.exit(2)
+    sys.exit(1)
 
 
 def _metrics_get_endpoints(options):
     """ Determine the start and end dates based on user-supplied options. """
     if bool(options.start) ^ bool(options.end):
         eprint('Error: --start and --end must be specified together')
-        sys.exit(2)
+        sys.exit(1)
 
     if options.start and options.end:
         start = options.start
