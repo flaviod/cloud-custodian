@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argcomplete
 import argparse
 import importlib
 import logging
@@ -21,6 +22,8 @@ import sys
 import traceback
 from datetime import datetime
 from dateutil.parser import parse as date_parse
+
+from c7n.commands import schema_completer
 
 DEFAULT_REGION = 'us-east-1'
 
@@ -134,10 +137,20 @@ def _logs_options(p):
     )
 
 
+def _schema_tab_completer(prefix, parsed_args, **kwargs):
+    # If we are printing the summary we discard the resource
+    if parsed_args.summary:
+        return []
+
+    return schema_completer(prefix)
+
+
 def _schema_options(p):
     """ Add options specific to schema subcommand. """
 
-    p.add_argument('resource', metavar='selector', nargs='?', default=None)
+    p.add_argument(
+        'resource', metavar='selector', nargs='?',
+        default=None).completer = _schema_tab_completer
     p.add_argument(
         '--summary', action="store_true",
         help="Summarize counts of available resources, actions and filters")
@@ -241,6 +254,7 @@ def cmd_version(options):
 
 def main():
     parser = setup_parser()
+    argcomplete.autocomplete(parser)
     options = parser.parse_args()
 
     level = options.verbose and logging.DEBUG or logging.INFO
