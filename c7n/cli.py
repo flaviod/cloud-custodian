@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# PYTHON_ARGCOMPLETE_OK  (Must be in first 1024 bytes, so if tab completion
+# is failing, move this above the license)
+
 import argcomplete
 import argparse
 import importlib
