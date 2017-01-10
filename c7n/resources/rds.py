@@ -117,9 +117,10 @@ class RDS(QueryResourceManager):
 
     @property
     def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running RDS policies')
-        return self.config.account_id
+        if self._account_id is None:
+            session = local_session(self.session_factory)
+            self._account_id = get_account_id(session)
+        return self._account_id
 
     @property
     def generate_arn(self):
@@ -761,9 +762,10 @@ class RDSSnapshot(QueryResourceManager):
 
     @property
     def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running RDSSnapshop policies')
-        return self.config.account_id
+        if self._account_id is None:
+            session = local_session(self.session_factory)
+            self._account_id = get_account_id(session)
+        return self._account_id
 
     @property
     def generate_arn(self):
