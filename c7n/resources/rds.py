@@ -63,7 +63,7 @@ from c7n.manager import resources
 from c7n.query import QueryResourceManager
 from c7n import tags
 from c7n.utils import (
-    local_session, type_schema, get_account_id,
+    local_session, type_schema,
     get_retry, chunks, generate_arn, snapshot_identifier)
 from c7n.resources.kms import ResourceKmsKeyAlias
 

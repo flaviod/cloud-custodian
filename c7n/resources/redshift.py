@@ -28,7 +28,7 @@ from c7n.query import QueryResourceManager
 from c7n import tags
 from c7n.utils import (
     type_schema, local_session, chunks, generate_arn, get_retry,
-    get_account_id, snapshot_identifier)
+    snapshot_identifier)
 
 log = logging.getLogger('custodian.redshift')
 
@@ -61,10 +61,9 @@ class Redshift(QueryResourceManager):
 
     @property
     def account_id(self):
-        if self._account_id is None:
-            session = local_session(self.session_factory)
-            self._account_id = get_account_id(session)
-        return self._account_id
+        if not self.config.account_id:
+            raise ValueError('Must specify --account-id when running Redshift policies')
+        return self.config.account_id
 
     @property
     def generate_arn(self):
@@ -559,10 +558,9 @@ class RedshiftSnapshot(QueryResourceManager):
 
     @property
     def account_id(self):
-        if self._account_id is None:
-            session = local_session(self.session_factory)
-            self._account_id = get_account_id(session)
-        return self._account_id
+        if not self.config.account_id:
+            raise ValueError('Must specify --account-id when running RedshiftSnapshot policies')
+        return self.config.account_id
 
     @property
     def generate_arn(self):

@@ -30,7 +30,7 @@ from c7n.manager import resources
 from c7n.query import QueryResourceManager
 from c7n import tags
 from c7n.utils import (
-    local_session, get_account_id, generate_arn,
+    local_session, generate_arn,
     get_retry, chunks, snapshot_identifier, type_schema)
 
 log = logging.getLogger('custodian.elasticache')
@@ -66,10 +66,9 @@ class ElastiCacheCluster(QueryResourceManager):
 
     @property
     def account_id(self):
-        if self._account_id is None:
-            session = local_session(self.session_factory)
-            self._account_id = get_account_id(session)
-        return self._account_id
+        if not self.config.account_id:
+            raise ValueError('Must specify --account-id when running ElastiCacheCluster policies')
+        return self.config.account_id
 
     @property
     def generate_arn(self):
@@ -382,10 +381,9 @@ class ElastiCacheSnapshot(QueryResourceManager):
 
     @property
     def account_id(self):
-        if self._account_id is None:
-            session = local_session(self.session_factory)
-            self._account_id = get_account_id(session)
-        return self._account_id
+        if not self.config.account_id:
+            raise ValueError('Must specify --account-id when running ElastiCacheSnapshot policies')
+        return self.config.account_id
 
     @property
     def generate_arn(self):
