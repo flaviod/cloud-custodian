@@ -42,6 +42,8 @@ def _default_options(p, blacklist=""):
         help="AWS Account Config File Profile to utilize")
     provider.add_argument("--assume", default=None, dest="assume_role",
                           help="Role to assume")
+    provider.add_argument('-i', '--account-id', default=None,
+                          help="Account ID")
 
     config = p.add_argument_group(
         "config", "Policy config file and policy selector")
