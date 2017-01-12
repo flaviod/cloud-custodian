@@ -60,15 +60,9 @@ class ElastiCacheCluster(QueryResourceManager):
 
     filter_registry = filters
     action_registry = actions
-    _generate_arn = _account_id = None
+    _generate_arn = None
     retry = staticmethod(get_retry(('Throttled',)))
     permissions = ('elasticache:ListTagsForResource',)
-
-    @property
-    def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running ElastiCacheCluster policies')
-        return self.config.account_id
 
     @property
     def generate_arn(self):
@@ -376,14 +370,8 @@ class ElastiCacheSnapshot(QueryResourceManager):
     filter_registry = FilterRegistry('elasticache-snapshot.filters')
     action_registry = ActionRegistry('elasticache-snapshot.actions')
     filter_registry.register('marked-for-op', tags.TagActionFilter)
-    _generate_arn = _account_id = None
+    _generate_arn = None
     retry = staticmethod(get_retry(('Throttled',)))
-
-    @property
-    def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running ElastiCacheSnapshot policies')
-        return self.config.account_id
 
     @property
     def generate_arn(self):

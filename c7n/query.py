@@ -16,16 +16,19 @@ Query capability built on skew metamodel
 
 tags_spec -> s3, elb, rds
 """
+from __future__ import print_function
+
 import functools
 import itertools
 import jmespath
+import sys
 
 from botocore.client import ClientError
 
 from c7n.actions import ActionRegistry
 from c7n.filters import FilterRegistry, MetricsFilter
 from c7n.tags import register_tags
-from c7n.utils import local_session, get_retry, chunks
+from c7n.utils import local_session, get_retry, chunks, get_account_id_from_iam
 from c7n.manager import ResourceManager
 
 
@@ -131,6 +134,7 @@ class QueryResourceManager(ResourceManager):
     max_workers = 3
     chunk_size = 20
     permissions = ()
+    _account_id = None  # Remove when we no longer infer account ID from IAM
 
     def __init__(self, data, options):
         super(QueryResourceManager, self).__init__(data, options)
@@ -224,6 +228,28 @@ class QueryResourceManager(ResourceManager):
         with self.executor_factory(max_workers=self.max_workers) as w:
             results = list(w.map(_augment, chunks(resources, self.chunk_size)))
             return list(itertools.chain(*results))
+
+    @property
+    def account_id(self):
+        """ Return the current account ID. 
+        
+        This should now be passed in using the --account-id flag, but for a
+        period of time we will support the old behavior of inferring this from
+        IAM.
+        """
+        if self.config.account_id:
+            return self.config.account_id
+
+        # Below this comment is deprecated.
+        msg = ("Warning: Inferring the account ID from IAM is deprecated. "
+               "Use the --account-id flag to specify this value.")
+        self.log.warning(msg)
+        print(msg, file=sys.stderr)
+        
+        if self._account_id is None:
+            session = local_session(self.session_factory)
+            self._account_id = get_account_id_from_iam(session)
+        return self._account_id
 
 
 def _batch_augment(manager, model, detail_spec, resource_set):

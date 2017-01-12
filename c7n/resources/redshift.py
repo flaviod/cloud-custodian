@@ -57,13 +57,7 @@ class Redshift(QueryResourceManager):
     retry = staticmethod(get_retry(('Throttling',)))
 
     permissions = ('iam:ListRoles',) # account id retrieval
-    _generate_arn = _account_id = None
-
-    @property
-    def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running Redshift policies')
-        return self.config.account_id
+    _generate_arn = None
 
     @property
     def generate_arn(self):
@@ -554,13 +548,7 @@ class RedshiftSnapshot(QueryResourceManager):
 
     filter_registry.register('marked-for-op', tags.TagActionFilter)
 
-    _generate_arn = _account_id = None
-
-    @property
-    def account_id(self):
-        if not self.config.account_id:
-            raise ValueError('Must specify --account-id when running RedshiftSnapshot policies')
-        return self.config.account_id
+    _generate_arn = None
 
     @property
     def generate_arn(self):

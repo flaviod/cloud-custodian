@@ -167,7 +167,7 @@ def camelResource(obj):
     return obj
 
 
-def get_account_id(session):
+def get_account_id_from_iam(session):
     iam = session.client('iam')
     return iam.list_roles(MaxItems=1)['Roles'][0]['Arn'].split(":")[4]
 
