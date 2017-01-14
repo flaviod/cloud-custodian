@@ -16,12 +16,10 @@ Query capability built on skew metamodel
 
 tags_spec -> s3, elb, rds
 """
-from __future__ import print_function
-
 import functools
 import itertools
 import jmespath
-import sys
+import warnings
 
 from botocore.client import ClientError
 
@@ -30,6 +28,9 @@ from c7n.filters import FilterRegistry, MetricsFilter
 from c7n.tags import register_tags
 from c7n.utils import local_session, get_retry, chunks, get_account_id_from_iam
 from c7n.manager import ResourceManager
+
+# DeprecationWarning is ignored by default.  Enable it
+warnings.simplefilter('always', DeprecationWarning)
 
 
 class ResourceQuery(object):
@@ -242,9 +243,9 @@ class QueryResourceManager(ResourceManager):
 
         # Below this comment is deprecated.
         msg = ("Warning: Inferring the account ID from IAM is deprecated. "
-               "Use the --account-id flag to specify this value.")
-        self.log.warning(msg)
-        print(msg, file=sys.stderr)
+               "Use the --account-id flag to specify this value. "
+               "({})".format(self.ctx.policy))
+        warnings.warn(msg, DeprecationWarning)
         
         if self._account_id is None:
             session = local_session(self.session_factory)

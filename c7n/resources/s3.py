@@ -37,8 +37,6 @@ Actions:
    delivery.
 
 """
-from __future__ import print_function
-
 import functools
 import json
 import itertools
@@ -47,7 +45,7 @@ import math
 import os
 import time
 import ssl
-import sys
+import warnings
 
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -67,6 +65,9 @@ from c7n.utils import (
 
 
 log = logging.getLogger('custodian.s3')
+
+# DeprecationWarning is ignored by default.  Enable it
+warnings.simplefilter('always', DeprecationWarning)
 
 filters = FilterRegistry('s3.filters')
 actions = ActionRegistry('s3.actions')
@@ -616,9 +617,9 @@ class AttachLambdaEncrypt(BucketActionBase):
 
         if not self.manager.config.account_id:
             msg = ("Warning: Inferring the account ID from IAM is deprecated. "
-                   "Use the --account-id flag to specify this value.")
-            log.warning(msg)
-            print(msg, file=sys.stderr)
+                   "Use the --account-id flag to specify this value. "
+                   "(Policy {})".format(self.data.get('name')))
+            warnings.warn(msg, DeprecationWarning)
 
         return self
 
