@@ -615,10 +615,11 @@ class AttachLambdaEncrypt(BucketActionBase):
                 "attach-encrypt: role must be specified either "
                 "via assume or in config")
 
-        if not self.manager.config.account_id:
+        if (not getattr(self.manager.config, 'dryrun', True) and
+            not self.manager.config.account_id):
             msg = ("Warning: Inferring the account ID from IAM is deprecated. "
                    "Use the --account-id flag to specify this value. "
-                   "(Policy {})".format(self.data.get('name')))
+                   "({})".format(self.manager.ctx.policy))
             warnings.warn(msg, DeprecationWarning)
 
         return self
