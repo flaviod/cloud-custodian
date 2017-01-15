@@ -36,6 +36,27 @@ class RDSTest(BaseTest):
         resources = p.run()
         self.assertEqual(len(resources), 1)
 
+    def test_rds_infer_account_id(self):
+        """ Temporary test for inferring account ID from IAM.
+        
+        We used to infer the account ID from IAM.  We moved to require it on the
+        command line via the --account-id flag.  This test is not specifically
+        for RDS, it is to exercise the fallback code for going to IAM, and it
+        can be removed when that deprecated code path is removed.
+        """
+        session_factory = self.replay_flight_data('test_rds_auto_patch')
+        p = self.load_policy({
+            'name': 'rds-tags',
+            'resource': 'rds',
+            'filters': [
+                {'AutoMinorVersionUpgrade': False}],
+            'actions': ['auto-patch']},
+            session_factory=session_factory)
+        # Specifically remove the account ID
+        p.ctx.options.account_id = None
+        resources = p.run()
+        self.assertEqual(len(resources), 1)
+
     def test_rds_tags(self):
         session_factory = self.replay_flight_data('test_rds_tags')
         p = self.load_policy({
