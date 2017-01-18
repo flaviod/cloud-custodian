@@ -342,11 +342,11 @@ class TabCompletionTest(CliTest):
     def test_schema_completer(self):
         self.assertIn('rds', cli.schema_completer('rd'))
         self.assertIn('s3.', cli.schema_completer('s3'))
-        self.assertListEqual([], cli.schema_completer('invalidResource'))
+        self.assertListEqual([], cli.schema_completer('invalidResource.'))
         self.assertIn('rds.actions', cli.schema_completer('rds.'))
         self.assertIn('s3.filters.', cli.schema_completer('s3.filters'))
         self.assertIn('s3.filters.event', cli.schema_completer('s3.filters.eve'))
-        self.assertListEqual([], cli.schema_completer('foo.bar.baz.qux'))
+        self.assertListEqual([], cli.schema_completer('rds.actions.foo.bar'))
 
     def test_schema_completer_wrapper(self):
         class MockArgs(object):
