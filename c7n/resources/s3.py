@@ -66,9 +66,6 @@ from c7n.utils import (
 
 log = logging.getLogger('custodian.s3')
 
-# DeprecationWarning is ignored by default.  Enable it
-warnings.simplefilter('always', DeprecationWarning)
-
 filters = FilterRegistry('s3.filters')
 actions = ActionRegistry('s3.actions')
 filters.register('marked-for-op', TagActionFilter)

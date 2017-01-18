@@ -29,9 +29,6 @@ from c7n.tags import register_tags
 from c7n.utils import local_session, get_retry, chunks, get_account_id_from_iam
 from c7n.manager import ResourceManager
 
-# DeprecationWarning is ignored by default.  Enable it
-warnings.simplefilter('always', DeprecationWarning)
-
 
 class ResourceQuery(object):
 

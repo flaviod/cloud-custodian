@@ -18,8 +18,12 @@ import logging
 import pdb
 import sys
 import traceback
+import warnings
 from datetime import datetime
 from dateutil.parser import parse as date_parse
+
+# DeprecationWarning is ignored by default.  Enable it
+warnings.simplefilter('always', DeprecationWarning)
 
 DEFAULT_REGION = 'us-east-1'
 
