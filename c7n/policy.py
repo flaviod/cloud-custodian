@@ -50,6 +50,11 @@ def load(options, path, format='yaml', validate=True):
         elif format == 'json':
             data = utils.loads(fh.read())
             validate = False
+
+    # Test for empty policy file
+    if not data or data.get('policies') is None:
+        return None
+            
     if validate:
         from c7n.schema import validate
         errors = validate(data)
