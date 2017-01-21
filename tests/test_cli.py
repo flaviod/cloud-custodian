@@ -339,9 +339,6 @@ class LogsTest(CliTest):
 class RunTest(CliTest):
     
     def test_ec2(self):
-        temp_dir = self.get_temp_dir()
-        yaml_file = self.write_policy_file({})
-
         session_factory = self.replay_flight_data(
             'test_ec2_state_transition_age_filter'
         )
@@ -349,6 +346,7 @@ class RunTest(CliTest):
         from c7n.policy import PolicyCollection
         self.patch(PolicyCollection, 'test_session_factory', lambda x: session_factory)
 
+        temp_dir = self.get_temp_dir()
         yaml_file = self.write_policy_file({
             'policies': [{
                 'name': 'ec2-state-transition-age',
@@ -368,6 +366,27 @@ class RunTest(CliTest):
             ['custodian', 'run', '-c', yaml_file, '-s', temp_dir],
         )
 
+    def test_error(self):
+        from c7n.policy import Policy
+        self.patch(Policy, '__call__', lambda x: (_ for _ in ()).throw(Exception('foobar')))
+
+        temp_dir = self.get_temp_dir()
+        yaml_file = self.write_policy_file({
+            'policies': [{
+                'name': 'error',
+                'resource': 'ec2',
+                'filters': [
+                    {'State.Name': 'running'},
+                    {'type': 'state-age', 'days': 30},
+                ],
+            }]
+        })
+
+        self.run_and_expect_failure(
+            ['custodian', 'run', '-c', yaml_file, '-s', temp_dir],
+            2
+        )
+        
 
 class MiscTest(CliTest):
     
