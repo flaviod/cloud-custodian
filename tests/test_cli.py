@@ -336,6 +336,39 @@ class LogsTest(CliTest):
         )
 
 
+class RunTest(CliTest):
+    
+    def test_ec2(self):
+        temp_dir = self.get_temp_dir()
+        yaml_file = self.write_policy_file({})
+
+        session_factory = self.replay_flight_data(
+            'test_ec2_state_transition_age_filter'
+        )
+
+        from c7n.policy import PolicyCollection
+        self.patch(PolicyCollection, 'test_session_factory', lambda x: session_factory)
+
+        yaml_file = self.write_policy_file({
+            'policies': [{
+                'name': 'ec2-state-transition-age',
+                'resource': 'ec2',
+                'filters': [
+                    {'State.Name': 'running'},
+                    {'type': 'state-age', 'days': 30},
+                ]
+            }]
+        })
+
+        # TODO - capture logging and ensure the following
+        #self.assertIn('Running policy ec2-state-transition-age', logs)
+        #self.assertIn('metric:ResourceCount Count:1 policy:ec2-state-transition-age', logs)
+
+        self.run_and_expect_success(
+            ['custodian', 'run', '-c', yaml_file, '-s', temp_dir],
+        )
+
+
 class MiscTest(CliTest):
     
     def test_empty_policy_file_error(self):

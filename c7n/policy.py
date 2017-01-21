@@ -73,7 +73,7 @@ class PolicyCollection(object):
         # self.options is the CLI options specified in cli.setup_parser()
         policies = []
         for p in self.data.get('policies', []):
-            policy = Policy(p, self.options)
+            policy = Policy(p, self.options, session_factory=self.test_session_factory())
             if 'resource_type' in self.options and self.options.resource_type:
                 if policy.resource_type == self.options.resource_type:
                     policies.append(policy)
@@ -103,6 +103,10 @@ class PolicyCollection(object):
         for p in self:
             rtypes.add(p.resource_type)
         return rtypes
+
+    def test_session_factory(self):
+        """ For testing: patched by tests to use a custom session_factory """
+        return None
 
 
 class PolicyExecutionMode(object):
