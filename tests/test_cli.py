@@ -334,3 +334,13 @@ class LogsTest(CliTest):
         self.run_and_expect_success(
             ['custodian', 'logs', '-c', yaml_file, '-s', output_dir],
         )
+
+
+class MiscTest(CliTest):
+    
+    def test_empty_policy_file_error(self):
+        temp_dir = self.get_temp_dir()
+        yaml_file = self.write_policy_file({})
+        self.run_and_expect_failure(
+            ['custodian', 'run', '-c', yaml_file, '-s', temp_dir],
+            1)
