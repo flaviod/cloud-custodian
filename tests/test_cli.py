@@ -226,23 +226,32 @@ class SchemaTest(CliTest):
 class ReportTest(CliTest):
 
     def test_report(self):
+        policy_name = 'ec2-running-instances'
         valid_policies = {
             'policies':
             [{
-                'name': 'foo',
-                'resource': 's3',
-                'filters': [{"tag:custodian_tagging": "not-null"}],
-                'actions': [{'type': 'tag',
-                             'tags': {'custodian_cleanup': 'yes'}}],
+                'name': policy_name,
+                'resource': 'ec2',
+                'query': [{"instance-state-name": "running"}],
             }]
         }
         yaml_file = self.write_policy_file(valid_policies)
-        temp_dir = self.get_temp_dir()
 
-        self.run_and_expect_success(
-            ['custodian', 'report', '-c', yaml_file, '-s', temp_dir])
+        output = self.get_output(
+            ['custodian', 'report', '-c', yaml_file, '-s', self.output_dir])
+        self.assertIn('InstanceId', output)
+        self.assertIn('i-014296505597bf519', output)
+
+        # Test for when output dir contains metric name, ensure that the
+        # output_dir gets auto-corrected
+        new_output_dir = os.path.join(self.output_dir, policy_name)
+        output = self.get_output(
+            ['custodian', 'report', '-c', yaml_file, '-s', new_output_dir])
+        self.assertIn('InstanceId', output)
+        self.assertIn('i-014296505597bf519', output)
 
         # empty file
+        temp_dir = self.get_temp_dir()
         empty_policies = {'policies': []}
         yaml_file = self.write_policy_file(empty_policies)
         self.run_and_expect_failure(
