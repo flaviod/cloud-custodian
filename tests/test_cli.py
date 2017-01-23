@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import json
 import os
 import shutil
@@ -21,7 +22,7 @@ import yaml
 from argparse import ArgumentTypeError
 from common import BaseTest
 from cStringIO import StringIO
-from c7n import cli, version
+from c7n import cli, version, commands
 from c7n.utils import dumps
 from datetime import datetime, timedelta
 
@@ -427,7 +428,8 @@ class MetricsTest(CliTest):
         start = end - timedelta(14)
         period = 24 * 60 * 60 * 14
 
-        out = self.get_output(['custodian', 'metrics', '-c', yaml_file])
+        out = self.get_output(
+            ['custodian', 'metrics', '-c', yaml_file, '--start', str(start), '--end', str(end), '--period', str(period)])
         
         self.assertEqual(
             json.loads(out),
@@ -451,6 +453,19 @@ class MetricsTest(CliTest):
         
     def test_metrics_get_endpoints(self):
 
+        #
+        # Test for defaults when --start is not supplied
+        #
+        class FakeOptions(object):
+            start = end = None
+            days = 5
+        options = FakeOptions()
+        start, end = commands._metrics_get_endpoints(options)
+        self.assertEqual((end - start).days, options.days)
+
+        #
+        # Test that --start and --end have to be passed together
+        #
         policy = {
             'policies':
             [{
