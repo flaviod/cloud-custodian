@@ -382,6 +382,10 @@ class RunTest(CliTest):
         from c7n.policy import Policy
         self.patch(Policy, '__call__', lambda x: (_ for _ in ()).throw(Exception('foobar')))
 
+        #
+        # Make sure that if the policy causes an exception we error out
+        #
+
         temp_dir = self.get_temp_dir()
         yaml_file = self.write_policy_file({
             'policies': [{
@@ -397,6 +401,20 @@ class RunTest(CliTest):
         self.run_and_expect_failure(
             ['custodian', 'run', '-c', yaml_file, '-s', temp_dir],
             2
+        )
+
+        #
+        # Test --debug
+        #
+        class CustomError(Exception):
+            pass
+
+        import pdb
+        self.patch(pdb, 'post_mortem', lambda x: (_ for _ in ()).throw(CustomError))
+
+        self.run_and_expect_exception(
+            ['custodian', 'run', '-c', yaml_file, '-s', temp_dir, '--debug'],
+            CustomError
         )
 
 
