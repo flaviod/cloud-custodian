@@ -20,7 +20,7 @@ from c7n.filters import FilterValidationError
 from c7n.resources.ebs import (
     CopyInstanceTags, EncryptInstanceVolumes, CopySnapshot, Delete)
 from c7n.executor import MainThreadExecutor
-
+from nose.tools import raises
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -75,18 +75,20 @@ class SnapshotCopyTest(BaseTest):
         tags = {t['Key']: t['Value'] for t in tags}
         self.assertEqual(tags['ASV'], 'RoadKill')
         
+    @raises(FilterValidationError)
     def test_snapshot_copy_error(self):
         # Missing 'target-key'
-        policy = {
+        self.load_policy({
             'name': 'snap-copy',
             'resource': 'ebs-snapshot',
             'filters': [
                 {'tag:ASV': 'RoadKill'}],
             'actions': [
                 {'type': 'copy',
-                 'target_region': 'us-east-1'}]
-        }
-        self.assertRaises(FilterValidationError, self.load_policy, policy)
+                 'target_region': 'us-east-1'}
+            ]
+        }, session_factory=None, validate=False)
+        self.fail("Validation error should have been thrown")
 
 
 class SnapshotAmiSnapshotTest(BaseTest):
