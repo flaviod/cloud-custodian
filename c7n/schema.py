@@ -365,10 +365,4 @@ def summary(vocabulary):
 
 def json_dump(resource=None):
     load_resources()
-    try:
-        print(json.dumps(generate(resource), indent=2))
-    except:
-        import traceback, pdb, sys
-        traceback.print_exc()
-        pdb.post_mortem(sys.exc_info()[-1])
-
+    print(json.dumps(generate(resource), indent=2))
