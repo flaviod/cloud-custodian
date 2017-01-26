@@ -91,6 +91,16 @@ class TestEMRQueryFilter(unittest.TestCase):
             QueryFilter.parse,
             [{'foo': 'bar'}])
 
+        self.assertRaises(
+            ValueError,
+            QueryFilter.parse,
+            [{'too': 'many', 'keys': 'error'}])
+
+        self.assertRaises(
+            ValueError,
+            QueryFilter.parse,
+            ['Not a dictionary'])
+
 
 class TestTerminate(BaseTest):
 
