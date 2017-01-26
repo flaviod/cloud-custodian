@@ -233,9 +233,10 @@ class EncryptExtantVolumesTest(BaseTest):
         self.assertEqual(
             resources[0]['Encrypted'], False)
 
+    @raises(ValueError)
     def test_encrypt_volumes_error(self):
         # Missing 'key'
-        policy = {
+        self.load_policy({
             'name': 'ebs-remediate-attached',
             'resource': 'ebs',
             'filters': [
@@ -244,8 +245,8 @@ class EncryptExtantVolumesTest(BaseTest):
             'actions': [
                 {'type': 'encrypt-instance-volumes',
                  'delay': 0.1}]
-        }
-        self.assertRaises(ValueError, self.load_policy, policy)
+        }, session_factory=None, validate=False)
+        self.fail("Validation error should have been thrown")
 
 
 class TestKmsAlias(BaseTest):
