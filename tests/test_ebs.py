@@ -118,18 +118,6 @@ class SnapshotAmiSnapshotTest(BaseTest):
         resources = policy.run()
         self.assertEqual(len(resources), 2)
 
-    def test_snapshot_error(self):
-        # skip-ami-snapshots must be a boolean
-        factory = self.replay_flight_data('test_ebs_ami_snapshot_filter')
-        policy = {
-            'name': 'ami-snap-filter',
-            'resource': 'ebs-snapshot',
-            'filters': [
-                {'type': 'skip-ami-snapshots',
-                 'value': None}],
-        }
-        self.assertRaises(FilterValidationError, self.load_policy, policy)
-
 
 class SnapshotTrimTest(BaseTest):
 
