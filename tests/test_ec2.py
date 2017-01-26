@@ -298,7 +298,7 @@ class TestTag(BaseTest):
         resources = policy.run()
         self.assertEqual(len(resources), 1)
 
-    def test_ec2_tag_error(self):
+    def test_ec2_tag_errors(self):
         # Specifying both 'key' and 'tag' is an error
         policy = {
             'name': 'ec2-tag-error',
@@ -310,11 +310,9 @@ class TestTag(BaseTest):
                 'value': 'TestingError'
             }]
         }
-
         self.assertRaises(FilterValidationError, self.load_policy, policy)
 
-    def test_ec2_tag_delayed_error(self):
-        # Invalid op
+        # Invalid op for 'mark-for-op' action
         policy = {
             'name': 'ec2-tag-error',
             'resource': 'ec2',
@@ -323,7 +321,6 @@ class TestTag(BaseTest):
                 'op': 'fake',
             }]
         }
-
         self.assertRaises(FilterValidationError, self.load_policy, policy)
         
     def test_ec2_untag(self):
