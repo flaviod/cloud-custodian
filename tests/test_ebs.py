@@ -16,6 +16,7 @@ import logging
 from botocore.exceptions import ClientError
 
 from common import BaseTest
+from c7n.filters import FilterValidationError
 from c7n.resources.ebs import (
     CopyInstanceTags, EncryptInstanceVolumes, CopySnapshot, Delete)
 from c7n.executor import MainThreadExecutor
@@ -73,6 +74,19 @@ class SnapshotCopyTest(BaseTest):
                           'c7n:CopiedSnapshot']]}])['Tags']
         tags = {t['Key']: t['Value'] for t in tags}
         self.assertEqual(tags['ASV'], 'RoadKill')
+        
+    def test_snapshot_copy_error(self):
+        # Missing 'target-key'
+        policy = {
+            'name': 'snap-copy',
+            'resource': 'ebs-snapshot',
+            'filters': [
+                {'tag:ASV': 'RoadKill'}],
+            'actions': [
+                {'type': 'copy',
+                 'target_region': 'us-east-1'}]
+        }
+        self.assertRaises(FilterValidationError, self.load_policy, policy)
 
 
 class SnapshotAmiSnapshotTest(BaseTest):
@@ -216,6 +230,20 @@ class EncryptExtantVolumesTest(BaseTest):
         self.assertEqual(len(resources), 1)
         self.assertEqual(
             resources[0]['Encrypted'], False)
+
+    def test_encrypt_volumes_error(self):
+        # Missing 'key'
+        policy = {
+            'name': 'ebs-remediate-attached',
+            'resource': 'ebs',
+            'filters': [
+                {'Encrypted': False},
+                {'VolumeId': 'vol-fdd1f844'}],
+            'actions': [
+                {'type': 'encrypt-instance-volumes',
+                 'delay': 0.1}]
+        }
+        self.assertRaises(ValueError, self.load_policy, policy)
 
 
 class TestKmsAlias(BaseTest):
