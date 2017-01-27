@@ -120,7 +120,7 @@ class SnapshotAmiSnapshotTest(BaseTest):
         resources = policy.run()
         self.assertEqual(len(resources), 2)
 
-    @raises(ValueError)
+    @raises(FilterValidationError)
     def test_snapshot_ami_error(self):
         # skip-ami-snapshots must be a boolean
         self.load_policy({
