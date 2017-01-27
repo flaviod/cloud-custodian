@@ -479,7 +479,7 @@ class AutoTagUser(EventAction):
         if self.manager.data.get('mode', {}).get('type') != 'cloudtrail':
             raise ValueError("Auto tag owner requires an event")
         if self.manager.action_registry.get('tag') is None:
-            raise ValueError("Resources does not support tagging")
+            raise ValueError("Resource does not support tagging")
         return self
 
     def process(self, resources, event):

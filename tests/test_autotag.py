@@ -102,25 +102,9 @@ class AutoTagCreator(BaseTest):
         # mode type is not cloudtrail
         policy = self.load_policy({
             'name': 'auto-tag-error',
-            'resource': 'fake',
+            'resource': 'ec2',
             'mode': {
                 'type': 'not-cloudtrail',
-                'events': ['RunInstances']},
-            'actions': [
-                {'type': 'auto-tag-user',
-                 'update': True,
-                 'tag': 'Owner'}]
-        }, session_factory=None, validate=False)
-        self.fail('Should have raised ValueError')
-
-    @raises(ValueError)
-    def test_error_auto_tag_unsupported_resource(self):
-        # resource 'fake' does not support auto-tag
-        policy = self.load_policy({
-            'name': 'auto-tag-error',
-            'resource': 'fake',
-            'mode': {
-                'type': 'cloudtrail',
                 'events': ['RunInstances']},
             'actions': [
                 {'type': 'auto-tag-user',
