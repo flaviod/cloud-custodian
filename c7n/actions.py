@@ -85,7 +85,7 @@ class Action(object):
         return self.__class__.__name__.lower()
 
     def process(self, resources):
-        raise NotImplemented(
+        raise NotImplementedError(
             "Base action class does not implement behavior")
 
     def _run_api(self, cmd, *args, **kw):
