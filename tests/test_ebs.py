@@ -120,6 +120,18 @@ class SnapshotAmiSnapshotTest(BaseTest):
         resources = policy.run()
         self.assertEqual(len(resources), 2)
 
+    @raises(ValueError)
+    def test_snapshot_ami_error(self):
+        # skip-ami-snapshots must be a boolean
+        self.load_policy({
+            'name': 'ami-snap-filter',
+            'resource': 'ebs-snapshot',
+            'filters': [
+                {'type': 'skip-ami-snapshots',
+                 'value': None}],
+        }, session_factory=None, validate=False)
+        self.fail("Validation error should have been thrown")
+
 
 class SnapshotTrimTest(BaseTest):
 
