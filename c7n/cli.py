@@ -264,7 +264,7 @@ def cmd_version(options):
     # os.uname is only available on recent versions of Unix
     try:
         print("Platform:   ", os.uname())
-    except:
+    except:  # pragma: no cover
         print("Platform:  ", sys.platform)
     print("Using venv: ", hasattr(sys, 'real_prefix'))
     print("PYTHONPATH: ")
