@@ -16,10 +16,10 @@ import json
 import shutil
 import tempfile
 
-
 from c7n import policy, manager
 from c7n.resources.ec2 import EC2
 from c7n.utils import dumps
+from nose.tools import raises
 
 from common import BaseTest, Config, Bag
 
@@ -361,3 +361,39 @@ class TestPolicy(BaseTest):
         p = collection.policies[0]
         p()
         self.assertEqual(len(p.ctx.metrics.data), 3)
+
+
+class PolicyExecutionModeTest(BaseTest):
+
+    @raises(NotImplementedError)
+    def test_run_unimplemented(self):
+        action = policy.PolicyExecutionMode({}).run()
+        self.fail('Should have raised NotImplementedError')
+
+    @raises(NotImplementedError)
+    def test_get_logs_unimplemented(self):
+        action = policy.PolicyExecutionMode({}).get_logs(1, 2)
+        self.fail('Should have raised NotImplementedError')
+
+
+class PullModeTest(BaseTest):
+
+    def test_skip_when_region_not_equal(self):
+        log_file = self.capture_logging('custodian.policy')
+
+        policy_name = 'rds-test-policy'
+        p = self.load_policy(
+            {'name': policy_name,
+             'resource': 'rds',
+             'region': 'us-east-1',
+             'filters': [
+                 {'type': 'default-vpc'}]},
+            config={'region': 'us-west-2'},
+            session_factory=None)
+
+        p.run()
+
+        lines = log_file.getvalue().strip().split('\n')
+        self.assertIn(
+            "Skipping policy {} target-region: us-east-1 current-region: us-west-2".format(policy_name),
+            lines)
