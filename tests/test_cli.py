@@ -305,6 +305,13 @@ class ReportTest(CliTest):
         self.assertIn('Warning', err)
         self.assertIn(policy_name, err)
 
+        bad_resource_name = 'foo'
+        _, err = self.run_and_expect_failure(
+            ['custodian', 'report', '-c', yaml_file, '-s', temp_dir, '-t', bad_resource_name], 
+            1)
+        
+        self.assertIn('Warning', err)
+
 
 class LogsTest(CliTest):
 
