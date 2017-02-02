@@ -141,6 +141,20 @@ class PolicyPermissions(BaseTest):
 
 class TestPolicy(BaseTest):
 
+    def test_load_policy_validation_error(self):
+        invalid_policies = {
+            'policies':
+            [{
+                'name': 'foo',
+                'resource': 's3',
+                'filters': [{"tag:custodian_tagging": "not-null"}],
+                'actions': [{'type': 'untag',
+                             'tags': {'custodian_cleanup': 'yes'}}],
+            }]
+        }
+        self.assertRaises(Exception, self.load_policy_set, invalid_policies)
+        
+
     def test_policy_validation(self):
         policy = self.load_policy({
             'name': 'ec2-utilization',
@@ -174,15 +188,23 @@ class TestPolicy(BaseTest):
                 {'name': 'ec2-tag-compliance-remove',
                  'resource': 'ec2'}]},
             )
-        self.assertEqual(collection.resource_types,
-                         set(('s3', 'ec2')))
+
+        self.assertIn('s3-remediate', collection)
+        self.assertNotIn('s3-argle-bargle', collection)
+        
+        # Make sure __iter__ works
+        for p in collection:
+            self.assertTrue(p.name is not None)
+
+        self.assertEqual(collection.resource_types, set(('s3', 'ec2')))
         self.assertTrue('s3-remediate' in collection)
+        
         self.assertEqual(
-            [p.name for p in collection.policies('s3*')],
+            [p.name for p in collection.filter('s3*')],
             ['s3-remediate', 's3-global-grants'])
 
         self.assertEqual(
-            [p.name for p in collection.policies('ec2*')],
+            [p.name for p in collection.filter('ec2*')],
             ['ec2-tag-compliance-stop',
              'ec2-tag-compliance-kill',
              'ec2-tag-compliance-remove'])
@@ -291,7 +313,7 @@ class TestPolicy(BaseTest):
                  'filters': [
                      {'tag-key': 'CMDBEnvironment'}
                  ]}]})
-        p = collection.policies()[0]
+        p = collection.policies[0]
         self.assertTrue(
             isinstance(p.get_resource_manager(), EC2))
 
@@ -336,6 +358,6 @@ class TestPolicy(BaseTest):
                 {'name': 'process-instances',
                  'resource': 'dummy'}]},
             {'output_dir': self.output_dir})
-        p = collection.policies()[0]
+        p = collection.policies[0]
         p()
         self.assertEqual(len(p.ctx.metrics.data), 3)

@@ -77,20 +77,16 @@ class PolicyCollection(object):
         
         # Do an initial filtering
         self.policies = []
-        resource_type = getattr(self.options, 'resource_type')
-        policy_name = getattr(self.options, 'policy_filter')
-        self.filter(resource_type, policy_name)
+        resource_type = getattr(self.options, 'resource_type', None)
+        policy_name = getattr(self.options, 'policy_filter', None)
+        self.policies = self.filter(policy_name, resource_type)
 
     @property
     def unfiltered_policies(self):
         return self._all_policies
 
-    @property
-    def num_unfiltered_policies(self):
-        return len(self.unfiltered_policies)
-    
-    def filter(self, resource_type=None, policy_name=None):
-        self.policies = []
+    def filter(self, policy_name=None, resource_type=None):
+        policies = []
         for policy in self.unfiltered_policies:
             if resource_type:
                 if policy.resource_type != resource_type:
@@ -100,14 +96,16 @@ class PolicyCollection(object):
                 if not fnmatch.fnmatch(policy.name, policy_name):
                     continue
 
-            self.policies.append(policy)
+            policies.append(policy)
 
+        return policies
+    
     def __iter__(self):
         return iter(self.policies)
 
     def __contains__(self, policy_name):
         for p in self.policies:
-            if p['name'] == policy_name:
+            if p.name == policy_name:
                 return True
         return False
 
