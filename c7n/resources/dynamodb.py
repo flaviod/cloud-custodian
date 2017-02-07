@@ -23,7 +23,7 @@ from c7n.manager import resources
 from c7n.utils import chunks, local_session, type_schema
 from c7n.actions import BaseAction
 from c7n.utils import (
-    local_session, get_account_id,get_retry, 
+    local_session, get_account_id_from_iam, get_retry, 
     chunks, snapshot_identifier, type_schema)
 from c7n.tags import TagDelayedAction, RemoveTag, TagActionFilter
 

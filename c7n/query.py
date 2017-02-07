@@ -28,7 +28,9 @@ from concurrent.futures import as_completed
 from c7n.actions import ActionRegistry
 from c7n.filters import FilterRegistry, MetricsFilter
 from c7n.tags import register_tags
-from c7n.utils import local_session, get_retry, chunks, camelResource, get_account_id_from_iam
+from c7n.utils import (
+    local_session, get_retry, chunks, camelResource,
+    get_account_id_from_iam)
 from c7n.registry import PluginRegistry
 from c7n.manager import ResourceManager
 
