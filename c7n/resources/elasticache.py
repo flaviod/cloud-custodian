@@ -120,7 +120,8 @@ class SubnetFilter(net_filters.SubnetFilter):
     def process(self, resources, event=None):
         self.groups = {
             r['CacheSubnetGroupName']: r for r in
-            ElastiCacheSubnetGroup(self.manager.ctx, {}).resources()}
+            self.manager.get_resource_manager(
+                'cache-subnet-group').resources()}
         return super(SubnetFilter, self).process(resources, event)
 
 
@@ -549,8 +550,8 @@ class CopyClusterTags(BaseAction):
         client = local_session(self.manager.session_factory).client('elasticache')
         clusters = {
             cluster['CacheClusterId']: cluster for cluster in
-            ElastiCacheCluster(self.manager.ctx, {}).resources()
-        }
+            self.manager.get_resource_manager('cache-cluster').resources()}
+
         for s in snapshots:
             if s['CacheClusterId'] in clusters:
                 continue

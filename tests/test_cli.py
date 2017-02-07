@@ -11,47 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import argparse
 import json
 import os
-import shutil
 import sys
-import tempfile
-import yaml
 
 from argparse import ArgumentTypeError
 from common import BaseTest
 from cStringIO import StringIO
 from c7n import cli, version, commands
-from c7n.utils import dumps
 from datetime import datetime, timedelta
 
 
 class CliTest(BaseTest):
     """ A subclass of BaseTest with some handy functions for CLI related tests. """
-
-    def write_policy_file(self, policy, format='yaml'):
-        """ Write a policy file to disk in the specified format.
-
-        Input a dictionary and a format. Valid formats are `yaml` and `json`
-        Returns the file path.
-        """
-        suffix = "." + format
-        file = tempfile.NamedTemporaryFile(suffix=suffix)
-        if format == 'json':
-            json.dump(policy, file)
-        else:
-            file.write(yaml.dump(policy, Dumper=yaml.SafeDumper))
-
-        file.flush()
-        self.addCleanup(file.close)
-        return file.name
-
-    def get_temp_dir(self):
-        """ Return a temporary directory that will get cleaned up. """
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
-        return temp_dir
 
     def get_output(self, argv):
         """ Run cli.main with the supplied argv and return the output. """
@@ -113,6 +85,12 @@ class VersionTest(CliTest):
     def test_version(self):
         output = self.get_output(['custodian', 'version'])
         self.assertEqual(output.strip(), version.version)
+
+    def test_debug_version(self):
+        output = self.get_output(['custodian', 'version', '--debug'])
+        # Among other things, this should print sys.path
+        self.assertIn(version.version, output)
+        self.assertIn(sys.path[0], output)
 
 
 class ValidateTest(CliTest):
@@ -299,6 +277,13 @@ class ReportTest(CliTest):
         self.assertIn('Warning', err)
         self.assertIn(policy_name, err)
 
+        bad_resource_name = 'foo'
+        _, err = self.run_and_expect_failure(
+            ['custodian', 'report', '-c', yaml_file, '-s', temp_dir, '-t', bad_resource_name], 
+            1)
+        
+        self.assertIn('Warning', err)
+
 
 class LogsTest(CliTest):
 
@@ -348,6 +333,29 @@ class LogsTest(CliTest):
         )
 
 
+class TabCompletionTest(CliTest):
+    """ Tests for argcomplete tab completion. """
+
+    def test_schema_completer(self):
+        self.assertIn('rds', cli.schema_completer('rd'))
+        self.assertIn('s3.', cli.schema_completer('s3'))
+        self.assertListEqual([], cli.schema_completer('invalidResource.'))
+        self.assertIn('rds.actions', cli.schema_completer('rds.'))
+        self.assertIn('s3.filters.', cli.schema_completer('s3.filters'))
+        self.assertIn('s3.filters.event', cli.schema_completer('s3.filters.eve'))
+        self.assertListEqual([], cli.schema_completer('rds.actions.foo.bar'))
+
+    def test_schema_completer_wrapper(self):
+        class MockArgs(object):
+            summary = False
+
+        args = MockArgs()
+        self.assertIn('rds', cli._schema_tab_completer('rd', args))
+        
+        args.summary = True
+        self.assertListEqual([], cli._schema_tab_completer('rd', args))
+
+        
 class RunTest(CliTest):
     
     def test_ec2(self):
@@ -493,7 +501,6 @@ class MetricsTest(CliTest):
             }]
         }
         yaml_file = self.write_policy_file(policy)
-        temp_dir = self.get_temp_dir()
 
         self.run_and_expect_failure(
             ['custodian', 'metrics', '-c', yaml_file, '--start', '1'],
