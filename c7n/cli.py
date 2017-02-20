@@ -50,7 +50,7 @@ def _default_options(p, blacklist=""):
 
     if 'region' not in blacklist:
         provider.add_argument(
-            "-r", "--region", default=None,
+            "-r", "--region", action='append', default=[],
             help="AWS Region to target (Default: %(default)s)")
     provider.add_argument(
         "--profile",
@@ -102,13 +102,13 @@ def _default_region(options):
     if value is marker:
         return
 
-    if value is not None:
+    if len(value) > 0:
         return
 
     profile = getattr(options, 'profile', None)
     try:
         import boto3
-        options.region = boto3.Session(profile_name=profile).region_name
+        options.region = [boto3.Session(profile_name=profile).region_name]
         log.debug("using default region:%s from boto" % options.region)
     except:
         return
@@ -318,10 +318,14 @@ def main():
         process_name.extend(sys.argv[1:])
         setproctitle(' '.join(process_name))
 
-        command(options)
+        regions = options.region
+        for region in regions:
+            if len(regions) > 1:
+                log.info('-'*70)  # for easier parsing of log files
+            options.region = region
+            command(options)
     except Exception:
         if not options.debug:
             raise
         traceback.print_exc()
         pdb.post_mortem(sys.exc_info()[-1])
-
