@@ -212,8 +212,7 @@ def setup_parser():
     c7n_desc = "Cloud fleet management"
     parser = argparse.ArgumentParser(description=c7n_desc)
 
-    # Setting `dest` means we capture which subparser was used.  We'll use it
-    # later on when doing post-parsing validation.
+    # Setting `dest` means we capture which subparser was used.
     subs = parser.add_subparsers(dest='subparser')
 
     report_desc = "CSV report of resources that a policy matched/ran on"
@@ -318,11 +317,14 @@ def main():
         process_name.extend(sys.argv[1:])
         setproctitle(' '.join(process_name))
 
-        regions = options.region
-        for region in regions:
-            if len(regions) > 1:
-                log.info('-'*70)  # for easier parsing of log files
-            options.region = region
+        if hasattr(options, 'region'):
+            regions = options.region
+            for region in regions:
+                if len(regions) > 1:
+                    log.info('-'*70)  # for easier parsing of log files
+                options.region = region
+                command(options)
+        else:
             command(options)
     except Exception:
         if not options.debug:
