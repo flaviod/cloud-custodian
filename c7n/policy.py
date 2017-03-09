@@ -75,6 +75,8 @@ class PolicyCollection(object):
         # We store all the policies passed in so we can refilter later
         self._all_policies = []
         for p in self.data.get('policies', []):
+            if 'all' in options.regions:
+                options.regions = utils.get_available_regions(p['resource'])
             for region in options.regions:
                 options_copy = copy.copy(options)
                 options_copy.region = region

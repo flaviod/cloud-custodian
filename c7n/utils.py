@@ -13,6 +13,7 @@
 # limitations under the License.
 from botocore.exceptions import ClientError
 
+import boto3
 import copy
 from datetime import datetime
 import functools
@@ -375,3 +376,8 @@ def reformat_schema(model):
             ret[key]['required'] = True
 
     return ret
+
+
+def get_available_regions(resource):
+    session = boto3.Session()
+    return session.get_available_regions(resource)
