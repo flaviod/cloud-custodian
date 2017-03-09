@@ -51,7 +51,8 @@ def _default_options(p, blacklist=""):
     if 'region' not in blacklist:
         provider.add_argument(
             "-r", "--region", action='append', default=[],
-            help="AWS Region to target (Default: %(default)s)")
+            dest='regions', metavar='REGION',
+            help="AWS Region to target.  Can be used multiple times")
     provider.add_argument(
         "--profile",
         help="AWS Account Config File Profile to utilize")
@@ -98,7 +99,7 @@ def _default_options(p, blacklist=""):
 
 def _default_region(options):
     marker = object()
-    value = getattr(options, 'region', marker)
+    value = getattr(options, 'regions', marker)
     if value is marker:
         return
 
@@ -108,8 +109,8 @@ def _default_region(options):
     profile = getattr(options, 'profile', None)
     try:
         import boto3
-        options.region = [boto3.Session(profile_name=profile).region_name]
-        log.debug("using default region:%s from boto" % options.region)
+        options.regions = [boto3.Session(profile_name=profile).region_name]
+        log.debug("using default region:%s from boto" % options.regions[0])
     except:
         return
 
@@ -137,7 +138,8 @@ def _report_options(p):
             "Options include simple, grid, rst")
 
     # We don't include `region` because the report command ignores it
-    p.add_argument("--region", default=DEFAULT_REGION, help=argparse.SUPPRESS)
+    p.add_argument("--region", dest='regions', default=[DEFAULT_REGION],
+                   help=argparse.SUPPRESS)
 
 
 def _metrics_options(p):
@@ -322,16 +324,7 @@ def main():
         process_name = [os.path.basename(sys.argv[0])]
         process_name.extend(sys.argv[1:])
         setproctitle(' '.join(process_name))
-
-        if hasattr(options, 'region'):
-            regions = options.region
-            for region in regions:
-                if len(regions) > 1:
-                    log.info('-'*70)  # for easier parsing of log files
-                options.region = region
-                command(options)
-        else:
-            command(options)
+        command(options)
     except Exception:
         if not options.debug:
             raise
