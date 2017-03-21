@@ -26,6 +26,25 @@ from c7n import utils
 from c7n.version import version as VERSION
 
 
+def operator_count():
+    pass
+
+
+def operator_sum():
+    pass
+
+
+def operator_average():
+    pass
+
+
+METRIC_OPS = {
+    'count': operator_count,
+    'sum': operator_sum,
+    'average': operator_average
+}
+
+
 class ActionRegistry(PluginRegistry):
 
     def __init__(self, *args, **kw):
@@ -522,3 +541,38 @@ class AutoTagUser(EventAction):
             {'key': self.data['tag'], 'value': user},
             self.manager).process(untagged)
         return untagged
+
+
+class PutMetric(BaseAction):
+    """Action to put metrics based on an expression into CloudWatch metrics
+    
+    :example:
+    
+        .. code-block: yaml
+        
+            policies:
+              - name: track-attached-ebs
+                resource: ec2
+                comment: |
+                  Put the count of the number of EBS attached disks to an instance
+                filter:
+                  - Name: tracked-ec2-instance
+                actions:
+                  - type: put-metric
+                    key: Reservations[].Instances[].BlockDeviceMappings[].DeviceName
+                    namespace: Usage Metrics
+                    metric_name: Attached Disks
+                    op: count
+    """
+
+    schema = utils.type_schema(
+        'put-metric',
+        key={'type': 'string'},
+        namespace={'type': 'string'},
+        metric_name={'type': 'string'},
+        op={'enum': METRIC_OPS.keys()}
+    )
+
+    def process(self, resources):
+        import pdb; pdb.set_trace()
+        pass
