@@ -51,6 +51,7 @@ class ActionRegistry(PluginRegistry):
         super(ActionRegistry, self).__init__(*args, **kw)
         self.register('notify', Notify)
         self.register('invoke-lambda', LambdaInvoke)
+        self.register('put-metric', PutMetric)
 
     def parse(self, data, manager):
         results = []
@@ -565,13 +566,18 @@ class PutMetric(BaseAction):
                     op: count
     """
 
-    schema = utils.type_schema(
-        'put-metric',
-        key={'type': 'string'},
-        namespace={'type': 'string'},
-        metric_name={'type': 'string'},
-        op={'enum': METRIC_OPS.keys()}
-    )
+    schema = {
+        'type': 'object',
+        'required': ['type', 'key', 'namespace', 'metric_name', 'op'],
+        'properties': {
+            'type': {'enum': ['put-metric',]},
+            'key': {'type':'string'},#jmes path
+            'namespace':{'type': 'string'},
+            'metric_name':{'type': 'string'},
+            'op': { 'enum': METRIC_OPS.keys() },
+        }
+    }
+
 
     def process(self, resources):
         import pdb; pdb.set_trace()
