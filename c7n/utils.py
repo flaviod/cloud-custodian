@@ -19,6 +19,7 @@ import functools
 import json
 import itertools
 import logging
+import os
 import random
 import threading
 import time
@@ -51,6 +52,27 @@ class Bag(dict):
             return self[k]
         except KeyError:
             raise AttributeError(k)
+
+
+def load_file(path, format=None, vars=None):
+    if format is None:
+        format = 'yaml'
+        _, ext = os.path.splitext(path)
+        if ext == 'json':
+            format = 'json'
+
+    with open(path) as fh:
+        contents = fh.read()
+        
+        # TODO - decide on a syntax for vars.  For now use
+        # python's str.format syntax for simplicity
+        if vars:
+            contents = contents.format(**vars)
+
+        if format == 'yaml':
+            return yaml_load(contents)
+        elif format == 'json':
+            return loads(contents)
 
 
 def yaml_load(value):
