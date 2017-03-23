@@ -45,6 +45,10 @@ else:
 from StringIO import StringIO
 
 
+class VarsSubstitutionError(Exception):
+    pass
+
+
 class Bag(dict):
 
     def __getattr__(self, k):
@@ -67,7 +71,14 @@ def load_file(path, format=None, vars=None):
         # TODO - decide on a syntax for vars.  For now use
         # python's str.format syntax for simplicity
         if vars:
-            contents = contents.format(**vars)
+            try:
+                contents = contents.format(**vars)
+            except IndexError as e:
+                msg = 'Failed to substitute variable by positional argument.'
+                raise VarsSubstitutionError(msg)
+            except KeyError as e:
+                msg = 'Failed to substitute variables.  KeyError on "{}"'.format(e.message)
+                raise VarsSubstitutionError(msg)
 
         if format == 'yaml':
             return yaml_load(contents)
