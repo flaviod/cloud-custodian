@@ -45,7 +45,6 @@ import math
 import os
 import time
 import ssl
-import warnings
 
 from botocore.client import Config
 from botocore.exceptions import ClientError
@@ -60,7 +59,7 @@ from c7n.query import QueryResourceManager
 from c7n.tags import RemoveTag, Tag, TagActionFilter, TagDelayedAction
 from c7n.utils import (
     chunks, local_session, set_annotation, type_schema, dumps,
-    get_account_id_from_iam)
+    get_account_id_from_sts)
 
 
 log = logging.getLogger('custodian.s3')
@@ -656,25 +655,14 @@ class AttachLambdaEncrypt(BucketActionBase):
                 "attach-encrypt: role must be specified either "
                 "via assume or in config")
 
-        if (not getattr(self.manager.config, 'dryrun', True) and
-            not self.manager.config.account_id):
-            msg = ("Warning: Inferring the account ID from IAM is deprecated. "
-                   "Use the --account-id flag to specify this value. "
-                   "({})".format(self.manager.ctx.policy))
-            warnings.warn(msg, DeprecationWarning)
-
         return self
 
     def process(self, buckets):
         from c7n.mu import LambdaManager
         from c7n.ufuncs.s3crypt import get_function
 
-        # When determining the account ID, fall back on IAM for now.
-        if self.manager.config.account_id:
-            account_id = self.manager.config.account_id
-        else:
-            session = local_session(self.manager.session_factory)
-            account_id = get_account_id_from_iam(session)
+        session = local_session(self.manager.session_factory)
+        account_id = get_account_id_from_sts(session)
 
         func = get_function(
             None, self.data.get('role', self.manager.config.assume_role),

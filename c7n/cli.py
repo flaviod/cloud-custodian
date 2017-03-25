@@ -24,7 +24,6 @@ import os
 import pdb
 import sys
 import traceback
-import warnings
 from datetime import datetime
 from dateutil.parser import parse as date_parse
 
@@ -34,9 +33,6 @@ except ImportError:
     setproctitle = lambda t: None
 
 from c7n.commands import schema_completer
-
-# DeprecationWarning is ignored by default.  Enable it
-warnings.simplefilter('always', DeprecationWarning)
 
 DEFAULT_REGION = 'us-east-1'
 
@@ -61,8 +57,6 @@ def _default_options(p, blacklist=""):
         help="AWS Account Config File Profile to utilize")
     provider.add_argument("--assume", default=None, dest="assume_role",
                           help="Role to assume")
-    provider.add_argument('-i', '--account-id', default=None,
-                          help="Account ID")
 
     config = p.add_argument_group(
         "config", "Policy config file(s) and policy selectors")

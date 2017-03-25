@@ -24,7 +24,7 @@ from botocore.exceptions import ClientError
 from c7n.actions import ActionRegistry
 from c7n.filters import Filter, FilterRegistry, ValueFilter
 from c7n.manager import ResourceManager, resources
-from c7n.utils import local_session, get_account_id_from_iam, type_schema
+from c7n.utils import local_session, get_account_id_from_sts, type_schema
 
 from c7n.resources.iam import CredentialReport
 
@@ -39,7 +39,7 @@ def get_account(session_factory):
     aliases = client.list_account_aliases().get(
         'AccountAliases', ('',))
     name = aliases and aliases[0] or ""
-    return {'account_id': get_account_id_from_iam(session),
+    return {'account_id': get_account_id_from_sts(session),
             'account_name': name}
 
 

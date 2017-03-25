@@ -92,8 +92,6 @@ class BaseTest(PillTest):
         if cache:
             config['cache'] = os.path.join(temp_dir, 'c7n.cache')
             config['cache_period'] = 300
-        if 'account_id' not in config:
-            config['account_id'] = '1234567890'
         conf = Config.empty(**config)
         return policy.Policy(data, conf, session_factory)
 
