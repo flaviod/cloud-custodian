@@ -38,6 +38,39 @@ METRIC_OPS = {
     'average': average,
 }
 
+METRIC_UNITS = (
+    # Time
+    'Seconds',
+    'Microseconds',
+    'Milliseconds',
+    # Bytes and Bits
+    'Bytes',
+    'Kilobytes',
+    'Megabytes',
+    'Gigabytes',
+    'Terabytes',
+    'Bits',
+    'Kilobits',
+    'Megabits',
+    'Gigabits',
+    'Terabits',
+    # Rates
+    'Bytes/Second',
+    'Kilobytes/Second',
+    'Megabytes/Second',
+    'Gigabytes/Second',
+    'Terabytes/Second',
+    'Bits/Second',
+    'Kilobits/Second',
+    'Megabits/Second',
+    'Gigabits/Second',
+    'Terabits/Second',
+    'Count/Second',
+    # Other Scalars
+    'Percent',
+    'Count',
+    'None'
+)
 
 class ActionRegistry(PluginRegistry):
 
