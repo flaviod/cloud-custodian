@@ -583,7 +583,7 @@ class PutMetric(BaseAction):
                 resource: ec2
                 comment: |
                   Put the count of the number of EBS attached disks to an instance
-                filter:
+                filters:
                   - Name: tracked-ec2-instance
                 actions:
                   - type: put-metric
@@ -591,21 +591,78 @@ class PutMetric(BaseAction):
                     namespace: Usage Metrics
                     metric_name: Attached Disks
                     op: count
-    """
+                    units: Files
 
+    op and units are optional and will default to simple Counts.
+    """
+    permissions = {'cloudwatch:PutMetricData',} #  typically lowercase servicename:TitleCaseActionName
     schema = {
         'type': 'object',
-        'required': ['type', 'key', 'namespace', 'metric_name', 'op'],
+        'required': ['type', 'key', 'namespace', 'metric_name'],
         'properties': {
-            'type': {'enum': ['put-metric',]},
-            'key': {'type':'string'},#jmes path
-            'namespace':{'type': 'string'},
-            'metric_name':{'type': 'string'},
-            'op': { 'enum': METRIC_OPS.keys() },
+            'type': {'enum': ['put-metric', ]},
+            'key': {'type': 'string'},  # jmes path
+            'namespace': {'type': 'string'},
+            'metric_name': {'type': 'string'},
+            'op': {'enum': METRIC_OPS.keys()},
+            'units': {'enum': METRIC_UNITS}
         }
     }
 
-
     def process(self, resources):
-        import pdb; pdb.set_trace()
-        pass
+        ns = self.data['namespace']
+        metric_name = self.data['metric_name']
+        key_expression = self.data.get('key', 'Resources[]')
+        operation = self.data.get('op', 'count')
+        units = self.data.get('units', 'Count')
+
+        from datetime import datetime
+        now = datetime.utcnow()
+
+        # reduce the resources by the key expression, and apply the operation to derive the value
+        import jmespath
+        value = 0
+        print "searching for", key_expression, "in", resources
+        try:
+            values = jmespath.search("Resources[]." + key_expression, {'Resources': resources})
+            # I had to wrap resourses in a dict like this in order to not have jmespath expressions start with []
+            # in the yaml files.  It fails to parse otherwise.
+            f = METRIC_OPS[operation]
+            value = f(values)
+        except TypeError, oops:
+            print oops
+        except KeyError, bad_op:
+            print "Bad op for put-metric action:", operation
+        # for demo purposes
+        #from math import sin, pi
+        #value = sin((now.minute * 6 * 4 * pi) / 180) * ((now.hour + 1) * 4.0)
+
+
+        metrics_data = [
+            {
+                'MetricName': metric_name,
+                # TODO: support custom dimensions
+                # 'Dimensions': [
+                #    {
+                #        'Name': 'number of files',
+                #        'Value': 'double' # should be float or double, no?
+                #    },
+                # ],
+                'Timestamp': now,
+                'Value': value,
+                # TODO: support an operation of 'stats' to include this structure instead of a single Value
+                # Value and StatisticValues are mutually exclusive.
+                # 'StatisticValues': {
+                #     'SampleCount': 1,
+                #     'Sum': 123.0,
+                #     'Minimum': 123.0,
+                #     'Maximum': 123.0
+                # },
+                'Unit': units,
+            },
+        ]
+
+        client = self.manager.session_factory().client('cloudwatch')
+        res = client.put_metric_data(Namespace=ns, MetricData=metrics_data)
+
+        return resources
