@@ -25,23 +25,17 @@ from c7n.executor import ThreadPoolExecutor
 from c7n import utils
 from c7n.version import version as VERSION
 
+def average(numbers):
+    return float(sum(numbers)) / max(len(numbers), 1)
 
-def operator_count():
-    pass
-
-
-def operator_sum():
-    pass
-
-
-def operator_average():
-    pass
-
+def distinct_count(values):
+    return float( len( set(values)))
 
 METRIC_OPS = {
-    'count': operator_count,
-    'sum': operator_sum,
-    'average': operator_average
+    'count': len,
+    'distinct_count': distinct_count,
+    'sum': sum,
+    'average': average,
 }
 
 
