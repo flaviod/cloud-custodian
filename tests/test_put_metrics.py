@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from c7n.utils import yaml_load
 from common import BaseTest
-import yaml
+import logging
+from pprint import pformat
+
+logger = logging.getLogger(name='c7n.tests')
 
 
 class PutMetricsTest(BaseTest):
@@ -31,6 +35,8 @@ class PutMetricsTest(BaseTest):
                     key: BlockDeviceMappings[].DeviceName
                     namespace: Usage Metrics
                     metric_name: Attached Disks
+                    dimensions:
+                      - { a: b }
                     op: distinct_count
         '''
     EXAMPLE_S3_POLICY = '''
@@ -54,13 +60,13 @@ class PutMetricsTest(BaseTest):
 
     def _get_test_policy(self, name, yaml_doc, record=False):
         if record:
-            print "TestPutMetrics is RECORDING"
+            logger.warn("TestPutMetrics is RECORDING")
             session_factory = self.record_flight_data('test_cw_put_metrics_'+name)
         else:
-            print "TestPutMetrics is replaying"
+            logger.debug("TestPutMetrics is replaying")
             session_factory = self.replay_flight_data('test_cw_put_metrics_'+name)
 
-        policy = self.load_policy( yaml.load(yaml_doc)['policies'][0], session_factory=session_factory)
+        policy = self.load_policy(yaml_load(yaml_doc)['policies'][0], session_factory=session_factory)
 
         return policy
 
@@ -69,18 +75,17 @@ class PutMetricsTest(BaseTest):
         """
         policy = self._get_test_policy(name="s3test", yaml_doc=self.EXAMPLE_S3_POLICY, record=self.record)
         resources = policy.run()
-        from pprint import pprint
-        print "these are the results from the policy, assumed to be resources that were processed"
-        pprint( resources)
+
+        logger.debug("these are the results from the policy, assumed to be resources that were processed")
+        logger.debug(pformat(resources))
         self.assertGreaterEqual(len(resources),1,"PutMetricsTest appears to have processed 0 resources.")
 
 
     def test_putmetrics_ec2(self):
         policy = self._get_test_policy(name="ec2test", yaml_doc=self.EXAMPLE_EC2_POLICY, record=self.record)
         resources = policy.run()
-        from pprint import pprint
-        print "these are the results from the policy, assumed to be resources that were processed"
-        pprint( resources)
+        logger.debug("these are the results from the policy, assumed to be resources that were processed")
+        logger.debug(pformat(resources))
         self.assertGreaterEqual(len(resources),1,"PutMetricsTest appears to have processed 0 resources. "
                                                  "Are there any running ec2 instances?")
 

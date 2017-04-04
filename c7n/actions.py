@@ -597,7 +597,8 @@ class PutMetric(BaseAction):
 
     op and units are optional and will default to simple Counts.
     """
-    permissions = {'cloudwatch:PutMetricData',} #  typically lowercase servicename:TitleCaseActionName
+    # permissions are typically lowercase servicename:TitleCaseActionName
+    permissions = {'cloudwatch:PutMetricData', }
     schema = {
         'type': 'object',
         'required': ['type', 'key', 'namespace', 'metric_name'],
@@ -606,6 +607,8 @@ class PutMetric(BaseAction):
             'key': {'type': 'string'},  # jmes path
             'namespace': {'type': 'string'},
             'metric_name': {'type': 'string'},
+            'dimensions': {'type':'array',
+                           'items': 'object'},
             'op': {'enum': METRIC_OPS.keys()},
             'units': {'enum': METRIC_UNITS}
         }
@@ -617,44 +620,44 @@ class PutMetric(BaseAction):
         key_expression = self.data.get('key', 'Resources[]')
         operation = self.data.get('op', 'count')
         units = self.data.get('units', 'Count')
+        # dimensions are passed as a list of dicts
+        dimensions = self.data.get('dimensions', [])
 
         now = datetime.utcnow()
 
         # reduce the resources by the key expression, and apply the operation to derive the value
         values = []
-        self.log.debug( "searching for %s in %s", key_expression, resources )
+        self.log.debug("searching for %s in %s", key_expression, resources)
         try:
-            values = jmespath.search("Resources[]." + key_expression, {'Resources': resources})
+            values = jmespath.search("Resources[]." + key_expression,
+                                     {'Resources': resources})
             # I had to wrap resourses in a dict like this in order to not have jmespath expressions start with []
             # in the yaml files.  It fails to parse otherwise.
         except TypeError, oops:
-            self.log.error( oops.message )
+            self.log.error(oops.message)
 
         value = 0
         try:
             f = METRIC_OPS[operation]
             value = f(values)
         except KeyError, bad_op:
-            self.log.error( "Bad op for put-metric action: %s", operation )
+            self.log.error("Bad op for put-metric action: %s", operation)
 
         # for demo purposes
-        #from math import sin, pi
-        #value = sin((now.minute * 6 * 4 * pi) / 180) * ((now.hour + 1) * 4.0)
+        # from math import sin, pi
+        # value = sin((now.minute * 6 * 4 * pi) / 180) * ((now.hour + 1) * 4.0)
 
 
         metrics_data = [
             {
                 'MetricName': metric_name,
-                # TODO: support custom dimensions
-                # 'Dimensions': [
-                #    {
-                #        'Name': 'number of files',
-                #        'Value': 'double' # should be float or double, no?
-                #    },
-                # ],
+                'Dimensions': [{'Name': i[0], 'Value': i[1]}
+                               for d in dimensions
+                               for i in d.items()],
                 'Timestamp': now,
                 'Value': value,
-                # TODO: support an operation of 'stats' to include this structure instead of a single Value
+                # TODO: support an operation of 'stats' to include this
+                # structure instead of a single Value
                 # Value and StatisticValues are mutually exclusive.
                 # 'StatisticValues': {
                 #     'SampleCount': 1,
