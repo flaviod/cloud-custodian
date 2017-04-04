@@ -95,3 +95,12 @@ class PutMetricsTest(BaseTest):
         self.assertTrue( "cloudwatch:PutMetricData" in PutMetric.permissions)
         pma = PutMetric()
         self.assertTrue( "cloudwatch:PutMetricData" in pma.get_permissions())
+
+
+    def test_putmetrics_schema(self):
+        import jsonschema
+        from c7n.actions import PutMetric
+        data = yaml_load(self.EXAMPLE_EC2_POLICY)
+        action_schema = PutMetric.schema
+        res = jsonschema.validate(data['policies'][0]['actions'][0], action_schema)
+        self.assertIsNone(res, "PutMetric.schema failed to validate.")

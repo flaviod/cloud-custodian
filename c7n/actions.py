@@ -40,7 +40,7 @@ METRIC_OPS = {
     'average': average,
 }
 
-METRIC_UNITS = (
+METRIC_UNITS = [
     # Time
     'Seconds',
     'Microseconds',
@@ -72,7 +72,7 @@ METRIC_UNITS = (
     'Percent',
     'Count',
     'None'
-)
+]
 
 class ActionRegistry(PluginRegistry):
 
@@ -608,7 +608,10 @@ class PutMetric(BaseAction):
             'namespace': {'type': 'string'},
             'metric_name': {'type': 'string'},
             'dimensions': {'type':'array',
-                           'items': 'object'},
+                           'items': {
+                               'type':'object'
+                            },
+            },
             'op': {'enum': METRIC_OPS.keys()},
             'units': {'enum': METRIC_UNITS}
         }
