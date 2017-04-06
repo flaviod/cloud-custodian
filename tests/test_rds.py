@@ -14,13 +14,15 @@
 import logging
 import time
 
-from common import BaseTest
-
 from c7n.executor import MainThreadExecutor
 from c7n.filters import FilterValidationError
 from c7n.resources import rds
+from c7n.utils import yaml_load
 from c7n import tags
 
+from common import BaseTest
+
+logger = logging.getLogger(name='c7n.tests')
 
 class RDSTest(BaseTest):
 
@@ -795,3 +797,122 @@ class TestHealthEventsFilter(BaseTest):
             session_factory=session_factory)
         resources = policy.run()
         self.assertEqual(len(resources), 0)
+
+
+class TestRDSParameterGroupFilter(BaseTest):
+    """ This test assumes two parameter groups have been created and
+        assigned to two different RDS instances.
+    """
+    DEFAULT_REGION = 'us-east-1'  # N. Virginia
+    REQUIRED_PARAMETERGROUPS = [
+        'rds-pg-group-a',
+        'rds-pg-group-b',
+    ]
+    RECORD = False
+    EXAMPLE_YAML_A_NOT_B = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: parameter-group
+                names: rds-pg-group-a
+                verbose: true
+            actions:
+              - type: dummy
+    '''
+    EXAMPLE_YAML_B_NOT_A = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: parameter-group
+                names: rds-pg-group-b
+                verbose: true
+            actions:
+              - type: dummy
+    '''
+    EXAMPLE_YAML_A_OR_B = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: parameter-group
+                names: rds-pg-group-a, rds-pg-group-b
+                verbose: true
+            actions:
+              - type: dummy
+    '''
+
+    def _get_test_policy(self, name, yaml_doc, record=False):
+        if record:
+            logger.warn("%s is RECORDING" % self.__class__.__name__)
+            session_factory = self.record_flight_data(
+                "_".join(['test', self.__class__.__name__, name])
+            )
+
+        else:
+            logger.debug("%s is replaying" % self.__class__.__name__)
+            session_factory = self.replay_flight_data(
+                "_".join(['test', self.__class__.__name__, name])
+            )
+
+        policy = self.load_policy(yaml_load(yaml_doc)['policies'][0],
+                                  session_factory=session_factory)
+
+        return policy
+
+    def test_filter_a_not_b(self):
+        self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
+        policy = self._get_test_policy('a_not_b', self.EXAMPLE_YAML_A_NOT_B,
+                                       record=self.RECORD)
+        resources = policy.run()
+
+        group_a_resources = [r for r in resources if r['DBParameterGroups'][0][
+            'DBParameterGroupName'] == 'rds-pg-group-a']
+        not_group_a_resources = [r for r in resources if
+                                 r['DBParameterGroups'][0][
+                                     'DBParameterGroupName'] != 'rds-pg-group-a']
+
+        self.assertGreaterEqual(len(group_a_resources), 1,
+                                "No rds-pg-group-a rds instances found")
+        self.assertEqual(len(not_group_a_resources), 0,
+                         "Non rds-pg-group-a rds instances found")
+
+    def test_filter_b_not_a(self):
+        self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
+        policy = self._get_test_policy('b_not_a', self.EXAMPLE_YAML_B_NOT_A,
+                                       record=self.RECORD)
+        resources = policy.run()
+
+        group_b_resources = [r for r in resources if r['DBParameterGroups'][0][
+            'DBParameterGroupName'] == 'rds-pg-group-b']
+        not_group_b_resources = [r for r in resources if
+                                 r['DBParameterGroups'][0][
+                                     'DBParameterGroupName'] != 'rds-pg-group-b']
+
+        self.assertGreaterEqual(len(group_b_resources), 1,
+                                "No rds-pg-group-b rds instances found")
+        self.assertEqual(len(not_group_b_resources), 0,
+                         "Non rds-pg-group-b rds instances found")
+
+    def test_filter_a_or_b(self):
+        self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
+        policy = self._get_test_policy('a_or_b', self.EXAMPLE_YAML_A_OR_B,
+                                       record=self.RECORD)
+        resources = policy.run()
+
+        group_a_resources = [r for r in resources if r['DBParameterGroups'][0][
+            'DBParameterGroupName'] == 'rds-pg-group-a']
+
+        group_b_resources = [r for r in resources if r['DBParameterGroups'][0][
+            'DBParameterGroupName'] == 'rds-pg-group-b']
+        neither_a_nor_b = [r for r in resources if r['DBParameterGroups'][0][
+            'DBParameterGroupName'] not in self.REQUIRED_PARAMETERGROUPS]
+
+        self.assertGreaterEqual(len(group_a_resources), 1,
+                                "No rds-pg-group-a rds instances found")
+        self.assertGreaterEqual(len(group_a_resources), 1,
+                                "No rds-pg-group-a rds instances found")
+        self.assertEqual(len(neither_a_nor_b), 0,
+                         "Instances with ParameterGroups outside of the "
+                         "expected were found.")
