@@ -1207,7 +1207,7 @@ class ParameterGroupFilter(Filter):
                 resource: rds
                 filters:
                   - type: parameter-group
-                    name: somenamepattern
+                    names: group1,group3
                     verbose: bool
 
     based on the `describe_db_instances API
@@ -1215,32 +1215,32 @@ class ParameterGroupFilter(Filter):
     """
 
     schema = type_schema('parameter-group',
-                         name={'type': 'string'},
+                         names={'type': 'string'},
                          status={'type': 'string'},
                          verbose={'type': 'boolean'})
 
     permissions = ('rds:DescribeDBInstances',)
 
     def process(self, resources, event=None):
-        client = local_session(self.manager.session_factory).client('rds')
-        name_pattern = self.data.get('name', '')
+        required_names = [n.strip() for n in
+                          self.data.get('names', '').split(',')]
         expected_status = self.data.get('status', 'in-sync')
         verbose = self.data.get('verbose', False)
 
         results = []
 
-        import re
-        for r in resources:
-            for pg in r['DBParameterGroups']:
+        for resource in resources:
+            for pg in resource['DBParameterGroups']:
                 group_name = pg[u'DBParameterGroupName']
-                if re.match(name_pattern, group_name):
-                    results.append(r)
+                if group_name in required_names:
+                    results.append(resource)
                     if verbose:
-                        logging.getLogger().info(
-                            group_name + " matched " + name_pattern)
+                        self.log.info(
+                            group_name + " matched " + str(required_names))
                 else:
                     if verbose:
-                        logging.getLogger().info(
-                            group_name + " did not match " + name_pattern)
+                        self.log.info(
+                            group_name + " did not match " + str(
+                                required_names))
 
         return results
