@@ -1191,3 +1191,54 @@ class RDSSubnetGroup(QueryResourceManager):
         dimension = None
         date = None
 
+
+@filters.register('parameter-group')
+class ParameterGroupFilter(Filter):
+    """
+
+    :example:
+
+        .. code-block: yaml
+
+            policies:
+              - name: rds-paramtergroup-example
+                resource: rds
+                filters:
+                  - type: parameter-group
+                    name: somenamepattern
+                    verbose: bool
+
+    based on the `describe_db_instances API
+        <http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.describe_db_instances>`_
+    """
+
+    schema = type_schema('parameter-group',
+                         name={'type': 'string'},
+                         status={'type': 'string'},
+                         verbose={'type': 'boolean'})
+
+    permissions = ('rds:DescribeDBInstances',)
+
+    def process(self, resources, event=None):
+        client = local_session(self.manager.session_factory).client('rds')
+        name_pattern = self.data.get('name', '')
+        expected_status = self.data.get('status', 'in-sync')
+        verbose = self.data.get('verbose', False)
+
+        results = []
+
+        import re
+        for r in resources:
+            for pg in r['DBParameterGroups']:
+                group_name = pg[u'DBParameterGroupName']
+                if re.match(name_pattern, group_name):
+                    results.append(r)
+                    if verbose:
+                        logging.getLogger().info(
+                            group_name + " matched " + name_pattern)
+                else:
+                    if verbose:
+                        logging.getLogger().info(
+                            group_name + " did not match " + name_pattern)
+
+        return results
