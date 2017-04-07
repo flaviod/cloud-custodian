@@ -871,7 +871,7 @@ class TestRDSParameterGroupFilter(BaseTest):
             'DBParameterGroupName'] == 'rds-pg-group-a']
         not_group_a_resources = [r for r in resources if
                                  r['DBParameterGroups'][0][
-                                     'DBParameterGroupName'] != 'rds-pg-group-a']
+                                   'DBParameterGroupName'] != 'rds-pg-group-a']
 
         self.assertGreaterEqual(len(group_a_resources), 1,
                                 "No rds-pg-group-a rds instances found")
@@ -888,7 +888,7 @@ class TestRDSParameterGroupFilter(BaseTest):
             'DBParameterGroupName'] == 'rds-pg-group-b']
         not_group_b_resources = [r for r in resources if
                                  r['DBParameterGroups'][0][
-                                     'DBParameterGroupName'] != 'rds-pg-group-b']
+                                   'DBParameterGroupName'] != 'rds-pg-group-b']
 
         self.assertGreaterEqual(len(group_b_resources), 1,
                                 "No rds-pg-group-b rds instances found")
@@ -911,8 +911,8 @@ class TestRDSParameterGroupFilter(BaseTest):
 
         self.assertGreaterEqual(len(group_a_resources), 1,
                                 "No rds-pg-group-a rds instances found")
-        self.assertGreaterEqual(len(group_a_resources), 1,
-                                "No rds-pg-group-a rds instances found")
+        self.assertGreaterEqual(len(group_b_resources), 1,
+                                "No rds-pg-group-b rds instances found")
         self.assertEqual(len(neither_a_nor_b), 0,
                          "Instances with ParameterGroups outside of the "
                          "expected were found.")
