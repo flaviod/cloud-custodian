@@ -58,8 +58,7 @@ from c7n.manager import resources
 from c7n.query import QueryResourceManager
 from c7n.tags import RemoveTag, Tag, TagActionFilter, TagDelayedAction
 from c7n.utils import (
-    chunks, local_session, set_annotation, type_schema, dumps,
-    get_account_id_from_sts)
+    chunks, local_session, set_annotation, type_schema, dumps)
 
 
 log = logging.getLogger('custodian.s3')
@@ -662,7 +661,7 @@ class AttachLambdaEncrypt(BucketActionBase):
         from c7n.ufuncs.s3crypt import get_function
 
         session = local_session(self.manager.session_factory)
-        account_id = get_account_id_from_sts(session)
+        account_id = self.manager.config.account_id
 
         func = get_function(
             None, self.data.get('role', self.manager.config.assume_role),

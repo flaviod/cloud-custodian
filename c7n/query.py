@@ -28,8 +28,7 @@ from c7n.actions import ActionRegistry
 from c7n.filters import FilterRegistry, MetricsFilter
 from c7n.tags import register_tags
 from c7n.utils import (
-    local_session, get_retry, chunks, camelResource,
-    get_account_id_from_sts)
+    local_session, get_retry, chunks, camelResource)
 from c7n.registry import PluginRegistry
 from c7n.manager import ResourceManager
 
@@ -243,7 +242,6 @@ class QueryResourceManager(ResourceManager):
     chunk_size = 20
 
     permissions = ()
-    _account_id = None
 
     def __init__(self, data, options):
         super(QueryResourceManager, self).__init__(data, options)
@@ -327,10 +325,7 @@ class QueryResourceManager(ResourceManager):
         period of time we will support the old behavior of inferring this from
         IAM.
         """
-        if self._account_id is None:
-            session = local_session(self.session_factory)
-            self._account_id = get_account_id_from_sts(session)
-        return self._account_id
+        return self.config.account_id
 
 
 def _batch_augment(manager, model, detail_spec, resource_set):
