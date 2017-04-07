@@ -1210,8 +1210,9 @@ class ParameterGroupFilter(Filter):
                     names: group1,group3
                     verbose: bool
 
-    based on the `describe_db_instances API
-        <http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.describe_db_instances>`_
+    based on the `describe_db_instances API`_
+    
+    .. _describe_db_instances API: http://boto3.readthedocs.io/en/latest/reference/services/rds.html#RDS.Client.describe_db_instances
     """
 
     schema = type_schema('parameter-group',
