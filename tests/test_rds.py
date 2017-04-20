@@ -822,8 +822,6 @@ class TestRDSParameterGroupFilter(BaseTest):
               - type: parameter-group
                 names: rds-pg-group-a
                 verbose: true
-            actions:
-              - type: dummy
     '''
     EXAMPLE_YAML_B_NOT_A = '''
         policies:
@@ -833,8 +831,6 @@ class TestRDSParameterGroupFilter(BaseTest):
               - type: parameter-group
                 names: rds-pg-group-b
                 verbose: true
-            actions:
-              - type: dummy
     '''
     EXAMPLE_YAML_A_OR_B = '''
         policies:
@@ -844,8 +840,6 @@ class TestRDSParameterGroupFilter(BaseTest):
               - type: parameter-group
                 names: rds-pg-group-a, rds-pg-group-b
                 verbose: true
-            actions:
-              - type: dummy
     '''
 
     def _get_test_policy(self, name, yaml_doc, record=False):
@@ -921,8 +915,8 @@ class TestRDSParameterGroupFilter(BaseTest):
         self.assertEqual(len(neither_a_nor_b), 0,
                          "Instances with ParameterGroups outside of the "
                          "expected were found.")
-        
-        
+
+
 class Resize(BaseTest):
 
     def get_waiting_client(self, session_factory, session, name):
