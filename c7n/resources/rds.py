@@ -54,8 +54,7 @@ from botocore.exceptions import ClientError
 from concurrent.futures import as_completed
 
 from c7n.actions import (
-    ActionRegistry, BaseAction, AutoTagUser, ModifyVpcSecurityGroupsAction,
-    DummyAction)
+    ActionRegistry, BaseAction, AutoTagUser, ModifyVpcSecurityGroupsAction)
 from c7n.filters import (
     CrossAccountAccessFilter, FilterRegistry, Filter, AgeFilter, OPERATORS,
     FilterValidationError)
@@ -79,7 +78,6 @@ filters.register('tag-count', tags.TagCountFilter)
 filters.register('marked-for-op', tags.TagActionFilter)
 filters.register('health-event', HealthEventFilter)
 actions.register('auto-tag-user', AutoTagUser)
-actions.register('dummy', DummyAction)
 
 
 @resources.register('rds')

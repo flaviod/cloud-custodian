@@ -522,32 +522,3 @@ class AutoTagUser(EventAction):
             {'key': self.data['tag'], 'value': user},
             self.manager).process(untagged)
         return untagged
-
-
-class DummyAction(Action):
-    """ DummyAction -- takes no action, but returns the resources passed in by
-        earlier steps.
-
-    .. code-block:: yaml
-
-      policies:
-        - name: my-policy
-          resource: rds
-          filters:
-           - tag:Owner: absent
-          actions:
-           - type: dummy
-
-    Useful only for testing or verifying resource and filters are bahaving as
-    expected.
-
-    """
-    schema = {'type': 'object'}
-    permissions = ('*',)
-
-    def process(self, resources, **kwargs):
-        from pprint import pformat
-        self.log.info("DummyAction processing:")
-        for i, r in enumerate(resources):
-            self.log.info(pformat(r))
-        return resources
