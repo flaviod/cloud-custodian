@@ -62,7 +62,7 @@ def load_file(path, format=None, vars=None):
     if format is None:
         format = 'yaml'
         _, ext = os.path.splitext(path)
-        if ext == 'json':
+        if ext[1:] == 'json':
             format = 'json'
 
     with open(path) as fh:
