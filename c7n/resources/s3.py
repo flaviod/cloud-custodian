@@ -58,7 +58,7 @@ from c7n.manager import resources
 from c7n.query import QueryResourceManager
 from c7n.tags import RemoveTag, Tag, TagActionFilter, TagDelayedAction
 from c7n.utils import (
-    chunks, local_session, set_annotation, type_schema, dumps, get_account_id)
+    chunks, local_session, set_annotation, type_schema, dumps)
 
 
 log = logging.getLogger('custodian.s3')
@@ -100,7 +100,7 @@ class S3(QueryResourceManager):
 
     def augment(self, buckets):
         with self.executor_factory(
-                max_workers=min((10, len(buckets)))) as w:
+                max_workers=min((10, len(buckets) + 1))) as w:
             results = w.map(
                 assemble_bucket,
                 zip(itertools.repeat(self.session_factory), buckets))
@@ -634,7 +634,7 @@ class AttachLambdaEncrypt(BucketActionBase):
                   - attach-encrypt
     """
     schema = type_schema(
-        'attach-encrypt', role={'type': 'string'})
+        'attach-encrypt', role={'type': 'string'}, topic={'type': 'string'})
 
     permissions = (
         "s3:PutBucketNotification", "s3:GetBucketNotification",
@@ -653,6 +653,7 @@ class AttachLambdaEncrypt(BucketActionBase):
             raise ValueError(
                 "attach-encrypt: role must be specified either "
                 "via assume or in config")
+
         return self
 
     def process(self, buckets):
@@ -660,11 +661,12 @@ class AttachLambdaEncrypt(BucketActionBase):
         from c7n.ufuncs.s3crypt import get_function
 
         session = local_session(self.manager.session_factory)
-        account_id = get_account_id(session)
+        account_id = self.manager.config.account_id
+        topic_arn = self.data.get('topic')
 
         func = get_function(
             None, self.data.get('role', self.manager.config.assume_role),
-            account_id=account_id)
+            bool(topic_arn), account_id=account_id)
 
         regions = set([
             b.get('Location', {
@@ -697,6 +699,7 @@ class AttachLambdaEncrypt(BucketActionBase):
                         self.process_bucket,
                         region_funcs[region],
                         b,
+                        topic_arn,
                         account_id,
                         region_sessions[region]
                     ))
@@ -707,10 +710,14 @@ class AttachLambdaEncrypt(BucketActionBase):
                 results.append(f.result())
             return filter(None, results)
 
-    def process_bucket(self, func, bucket, account_id, session_factory):
-        from c7n.mu import BucketNotification
-        source = BucketNotification(
-            {'account_s3': account_id}, session_factory, bucket)
+    def process_bucket(self, func, bucket, topic, account_id, session_factory):
+        from c7n.mu import BucketSNSNotification, BucketLambdaNotification
+        if topic:
+            topic = None if topic == 'default' else topic
+            source = BucketSNSNotification(session_factory, bucket, topic)
+        else:
+            source = BucketLambdaNotification(
+                {'account_s3': account_id}, session_factory, bucket)
         return source.add(func)
 
 
