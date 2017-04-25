@@ -68,8 +68,6 @@ def load_file(path, format=None, vars=None):
     with open(path) as fh:
         contents = fh.read()
         
-        # TODO - decide on a syntax for vars.  For now use
-        # python's str.format syntax for simplicity
         if vars:
             try:
                 contents = contents.format(**vars)
