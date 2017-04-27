@@ -74,12 +74,17 @@ class PolicyCollection(object):
 
         # We store all the policies passed in so we can refilter later
         self._all_policies = []
+        session = utils.get_profile_session(options)
         for p in self.data.get('policies', []):
+            all_regions = session.get_available_regions(p['resource'])
             if 'all' in options.regions:
-                session = utils.get_profile_session(options)
-                options.regions = session.get_available_regions(p['resource'])
+                options.regions = all_regions
             for region in options.regions:
+                if region not in all_regions:
+                    # TODO - do we want a message
+                    continue
                 options_copy = copy.copy(options)
+                # TODO - why doesn't aws like unicode regions?
                 options_copy.region = str(region)
                 self._all_policies.append(
                     Policy(p, options_copy, session_factory=self.test_session_factory()))
