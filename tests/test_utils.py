@@ -264,8 +264,3 @@ class UtilTest(unittest.TestCase):
         delattr(FakeResource, 'schema')
         ret = utils.reformat_schema(FakeResource)
         self.assertIsInstance(ret, str)
-
-    def test_get_available_regions(self):
-        ret = utils.get_available_regions('s3')
-        self.assertTrue(len(ret) > 0)
-        self.assertIn('us-east-1', ret)
