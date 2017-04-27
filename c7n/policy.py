@@ -76,10 +76,11 @@ class PolicyCollection(object):
         self._all_policies = []
         for p in self.data.get('policies', []):
             if 'all' in options.regions:
-                options.regions = utils.get_available_regions(p['resource'])
+                session = utils.get_profile_session(options)
+                options.regions = session.get_available_regions(p['resource'])
             for region in options.regions:
                 options_copy = copy.copy(options)
-                options_copy.region = region
+                options_copy.region = str(region)
                 self._all_policies.append(
                     Policy(p, options_copy, session_factory=self.test_session_factory()))
         

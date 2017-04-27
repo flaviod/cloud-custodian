@@ -378,6 +378,12 @@ def reformat_schema(model):
     return ret
 
 
-def get_available_regions(resource):
-    session = boto3.Session()
-    return session.get_available_regions(resource)
+_profile_session = None
+def get_profile_session(options):
+    global _profile_session
+    if _profile_session:
+        return _profile_session
+
+    profile = getattr(options, 'profile', None)
+    _profile_session = boto3.Session(profile_name=profile)
+    return _profile_session

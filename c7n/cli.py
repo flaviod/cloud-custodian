@@ -24,6 +24,7 @@ import os
 import pdb
 import sys
 import traceback
+import utils
 from datetime import datetime
 from dateutil.parser import parse as date_parse
 
@@ -107,20 +108,16 @@ def _default_region(options):
     if len(value) > 0:
         return
 
-    profile = getattr(options, 'profile', None)
     try:
-        import boto3
-        options.regions = [boto3.Session(profile_name=profile).region_name]
+        options.regions = [utils.get_profile_session(options).region_name]
         log.debug("using default region:%s from boto" % options.regions[0])
     except:
         return
 
 
 def _default_account_id(options):
-    profile = getattr(options, 'profile', None)
     try:
-        import boto3
-        session = boto3.Session(profile_name=profile)
+        session = utils.get_profile_session(options)
         options.account_id = get_account_id_from_sts(session)
     except:
         options.account_id = None
