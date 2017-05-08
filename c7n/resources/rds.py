@@ -1259,7 +1259,7 @@ class RDSSubnetGroup(QueryResourceManager):
         date = None
 
 
-@filters.register('parameter-group')
+@filters.register('db-parameter')
 class ParameterGroupFilter(ValueFilter):
     """
 
@@ -1271,12 +1271,10 @@ class ParameterGroupFilter(ValueFilter):
               - name: rds-parametergroup-example
                 resource: rds
                 filters:
-                  - type: parameter-group
-                    names: group1,group3
-                    verbose: bool
-                    key:
-                    op:
-                    value:
+                  - type: db-parameter
+                    key: someparam
+                    op: eq
+                    value: someval
 
     based on the `describe_db_instances API`_
 
@@ -1284,20 +1282,13 @@ class ParameterGroupFilter(ValueFilter):
     reference/services/rds.html#RDS.Client.describe_db_instances
     """
 
-    '''
-    schema = type_schema('parameter-group',
-                         names={'type': 'string'},
-                         status={'type': 'string'},
-                         verbose={'type': 'boolean'})
-    '''
     schema = {
         'type': 'object',
         # Doesn't mix well with inherits that extend
         'additionalProperties': False,
         'required': ['type', 'key', 'op', ],  # omit value for future "isnull"
         'properties': {
-            # Doesn't mix well as enum with inherits that extend
-            'type': {'enum': ['parameter-group']},
+            'type': {'enum': ['db-parameter']},
             'key': {'type': 'string'},
             'default': {'oneOf': [
                 {'type': 'string'},
