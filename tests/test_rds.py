@@ -895,7 +895,6 @@ class TestRDSParameterGroupFilter(BaseTest):
 
         return policy
 
-
     def test_string_should_eq(self):
         self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
         policy = self._get_test_policy('equivalent_value_present',
@@ -904,6 +903,7 @@ class TestRDSParameterGroupFilter(BaseTest):
         resources = policy.run()
         self.assertEqual(len(resources), 2,
                          "failed to find rds with log_destination eq stderr")
+
     def test_string_should_nopt_eq(self):
         self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
         policy = self._get_test_policy('nonequivalent_value_present',
