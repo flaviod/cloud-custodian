@@ -249,7 +249,7 @@ class LambdaManager(object):
             if e.response['Error']['Code'] != 'ResourceNotFoundException':
                 raise
 
-    def metrics(self, funcs, start, end, period=5*60):
+    def metrics(self, funcs, start, end, period=5 * 60):
 
         def func_metrics(f):
             metrics = local_session(self.session_factory).client('cloudwatch')
@@ -260,8 +260,7 @@ class LambdaManager(object):
                     Dimensions=[{
                         'Name': 'FunctionName',
                         'Value': (
-                            isinstance(f, dict) and f['FunctionName']
-                            or f.name)}],
+                            isinstance(f, dict) and f['FunctionName'] or f.name)}],
                     Statistics=["Sum"],
                     StartTime=start,
                     EndTime=end,
@@ -281,7 +280,7 @@ class LambdaManager(object):
         group_name = "/aws/lambda/%s" % func.name
         log.info("Fetching logs from group: %s" % group_name)
         try:
-            log_groups = logs.describe_log_groups(
+            logs.describe_log_groups(
                 logGroupNamePrefix=group_name)
         except ClientError as e:
             if e.response['Error']['Code'] == 'ResourceNotFoundException':
@@ -362,7 +361,7 @@ class LambdaManager(object):
         transfer = S3Transfer(
             self.session_factory().client('s3'),
             config=TransferConfig(
-                multipart_threshold=1024*1024*4))
+                multipart_threshold=1024 * 1024 * 4))
         transfer.upload_file(
             archive.path,
             bucket=bucket,
@@ -790,7 +789,7 @@ class CloudWatchEventSource(object):
         log.debug('Creating cwe rule target for %s on func:%s' % (
             self, func_arn))
 
-        result = self.client.put_targets(
+        self.client.put_targets(
             Rule=func.name, Targets=[{"Id": func.name, "Arn": func_arn}])
 
         return True
@@ -801,13 +800,13 @@ class CloudWatchEventSource(object):
     def pause(self, func):
         try:
             self.client.disable_rule(Name=func.name)
-        except ClientError as e:
+        except:
             pass
 
     def resume(self, func):
         try:
             self.client.enable_rule(Name=func.name)
-        except ClientError as e:
+        except:
             pass
 
     def remove(self, func):
@@ -825,8 +824,8 @@ class CloudWatchEventSource(object):
             self.client.delete_rule(Name=func.name)
 
 
-class BucketNotification(object):
-    """ Subscribe a lambda to bucket notifications. """
+class BucketLambdaNotification(object):
+    """ Subscribe a lambda to bucket notifications directly. """
 
     def __init__(self, data, session_factory, bucket):
         self.data = data
@@ -950,7 +949,7 @@ class CloudWatchLogSubscription(object):
                 if e.response['Error']['Code'] != 'ResourceConflictException':
                     raise
             # Consistent put semantics / ie no op if extant
-            response = self.client.put_subscription_filter(
+            self.client.put_subscription_filter(
                 logGroupName=group['logGroupName'],
                 filterName=func.name,
                 filterPattern=self.filter_pattern,
@@ -1021,7 +1020,7 @@ class SNSSubscription(object):
 
             # Subscribe the lambda to the topic.
             topic = self.session.resource('sns').Topic(arn)
-            topic.subscribe(Protocol='lambda', Endpoint=func.arn) # idempotent
+            topic.subscribe(Protocol='lambda', Endpoint=func.arn)  # idempotent
 
     def remove(self, func):
         lambda_client = self.session.client('lambda')
@@ -1038,7 +1037,9 @@ class SNSSubscription(object):
                     raise
 
             paginator = self.client.get_paginator('list_subscriptions_by_topic')
-            class Done(Exception): pass
+
+            class Done(Exception):
+                pass
             try:
                 for page in paginator.paginate(TopicArn=topic_arn):
                     for subscription in page['Subscriptions']:
@@ -1056,6 +1057,49 @@ class SNSSubscription(object):
                         raise Done  # break out of both for loops
             except Done:
                 pass
+
+
+class BucketSNSNotification(SNSSubscription):
+    """ Subscribe a lambda to bucket notifications via SNS. """
+
+    def __init__(self, session_factory, bucket, topic=None):
+        # NB: We are overwriting __init__ vs. extending.
+        self.session_factory = session_factory
+        self.session = session_factory()
+        self.topic_arns = self.get_topic(bucket) if topic is None else [topic]
+        self.client = self.session.client('sns')
+
+    def get_topic(self, bucket):
+        session = local_session(self.session_factory)
+        sns = session.client('sns')
+        s3 = session.client('s3')
+
+        notifies = bucket['Notification']
+        if 'TopicConfigurations' not in notifies:
+            notifies['TopicConfigurations'] = []
+        all_topics = notifies['TopicConfigurations']
+        topic_arns = [t['TopicArn'] for t in all_topics
+                      if 's3:ObjectCreated:*' in t['Events']]
+        if not topic_arns:
+            # No suitable existing topic. Create one.
+            topic_arn = sns.create_topic(Name=bucket['Name'])['TopicArn']
+            policy = {
+                'Statement': [{
+                    'Action': 'SNS:Publish',
+                    'Effect': 'Allow',
+                    'Resource': topic_arn,
+                    'Principal': {'Service': 's3.amazonaws.com'}}]}
+            sns.set_topic_attributes(
+                TopicArn=topic_arn,
+                AttributeName='Policy',
+                AttributeValue=json.dumps(policy))
+            notifies['TopicConfigurations'].append({
+                'TopicArn': topic_arn,
+                'Events': ['s3:ObjectCreated:*']})
+            s3.put_bucket_notification_configuration(Bucket=bucket['Name'],
+                NotificationConfiguration=notifies)
+            topic_arns = [topic_arn]
+        return topic_arns
 
 
 class ConfigRule(object):
@@ -1087,8 +1131,8 @@ class ConfigRule(object):
                 'SourceDetails': [{
                     'EventSource': 'aws.config',
                     'MessageType': 'ConfigurationItemChangeNotification'}]
-                }
-            )
+            }
+        )
 
         if isinstance(func, PolicyLambda):
             manager = func.policy.get_resource_manager()
