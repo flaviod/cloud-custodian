@@ -814,32 +814,67 @@ class TestRDSParameterGroupFilter(BaseTest):
         'rds-pg-group-b',
     ]
     RECORD = False
-    EXAMPLE_YAML_A_NOT_B = '''
+    EXAMPLE_YAML_STRING_SHOULD_EQ = '''
         policies:
           - name: filter-rds-by-paramgroup
             resource: rds
             filters:
-              - type: parameter-group
-                names: rds-pg-group-a
-                verbose: true
+              - type: db-parameter
+                key: log_destination
+                op: eq
+                value: stderr
     '''
-    EXAMPLE_YAML_B_NOT_A = '''
+    EXAMPLE_YAML_STRING_SHOULD_NOT_EQ = '''
         policies:
           - name: filter-rds-by-paramgroup
             resource: rds
             filters:
-              - type: parameter-group
-                names: rds-pg-group-b
-                verbose: true
+              - type: db-parameter
+                key: log_destination
+                op: ne
+                value: s3
     '''
-    EXAMPLE_YAML_A_OR_B = '''
+
+    EXAMPLE_YAML_INT_DEFAULT = '''
         policies:
           - name: filter-rds-by-paramgroup
             resource: rds
             filters:
-              - type: parameter-group
-                names: rds-pg-group-a, rds-pg-group-b
-                verbose: true
+              - type: db-parameter
+                key: autovacuum_multixact_freeze_max_age
+                op: eq
+                value: 7
+                default: 7
+    '''
+    EXAMPLE_YAML_INT_SHOULD_EQ = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: db-parameter
+                key: full_page_writes
+                op: eq
+                value: 1
+    '''
+    EXAMPLE_YAML_INT_SHOULD_GT = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: db-parameter
+                key: full_page_writes
+                op: gt
+                value: 0
+    '''
+    EXAMPLE_YAML_INT_SHOULD_NOT_LT = '''
+        policies:
+          - name: filter-rds-by-paramgroup
+            resource: rds
+            filters:
+              - type: db-parameter
+                key: full_page_writes
+                op: lt
+                value: 1
     '''
 
     def _get_test_policy(self, name, yaml_doc, record=False):
@@ -860,61 +895,50 @@ class TestRDSParameterGroupFilter(BaseTest):
 
         return policy
 
-    def test_filter_a_not_b(self):
+
+    def test_string_should_eq(self):
         self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
-        policy = self._get_test_policy('a_not_b', self.EXAMPLE_YAML_A_NOT_B,
+        policy = self._get_test_policy('equivalent_value_present',
+                                       self.EXAMPLE_YAML_STRING_SHOULD_EQ,
                                        record=self.RECORD)
         resources = policy.run()
-
-        group_a_resources = [r for r in resources if r['DBParameterGroups'][0][
-            'DBParameterGroupName'] == 'rds-pg-group-a']
-        not_group_a_resources = [r for r in resources if
-                                 r['DBParameterGroups'][0][
-                                   'DBParameterGroupName'] != 'rds-pg-group-a']
-
-        self.assertGreaterEqual(len(group_a_resources), 1,
-                                "No rds-pg-group-a rds instances found")
-        self.assertEqual(len(not_group_a_resources), 0,
-                         "Non rds-pg-group-a rds instances found")
-
-    def test_filter_b_not_a(self):
+        self.assertEqual(len(resources), 2,
+                         "failed to find rds with log_destination eq stderr")
+    def test_string_should_nopt_eq(self):
         self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
-        policy = self._get_test_policy('b_not_a', self.EXAMPLE_YAML_B_NOT_A,
+        policy = self._get_test_policy('nonequivalent_value_present',
+                                       self.EXAMPLE_YAML_STRING_SHOULD_NOT_EQ,
                                        record=self.RECORD)
         resources = policy.run()
+        self.assertEqual(len(resources), 2,
+                         "should not find any rds with log_destination eq s3")
 
-        group_b_resources = [r for r in resources if r['DBParameterGroups'][0][
-            'DBParameterGroupName'] == 'rds-pg-group-b']
-        not_group_b_resources = [r for r in resources if
-                                 r['DBParameterGroups'][0][
-                                   'DBParameterGroupName'] != 'rds-pg-group-b']
-
-        self.assertGreaterEqual(len(group_b_resources), 1,
-                                "No rds-pg-group-b rds instances found")
-        self.assertEqual(len(not_group_b_resources), 0,
-                         "Non rds-pg-group-b rds instances found")
-
-    def test_filter_a_or_b(self):
+    def test_int_with_default(self):
         self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
-        policy = self._get_test_policy('a_or_b', self.EXAMPLE_YAML_A_OR_B,
+        policy = self._get_test_policy('missing value should use given default',
+                                       self.EXAMPLE_YAML_INT_DEFAULT,
                                        record=self.RECORD)
         resources = policy.run()
+        self.assertEqual(len(resources), 2,
+                         "expected to use the given default to match")
 
-        group_a_resources = [r for r in resources if r['DBParameterGroups'][0][
-            'DBParameterGroupName'] == 'rds-pg-group-a']
+    def test_int_gt_zero(self):
+        self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
+        policy = self._get_test_policy('equivalent_value_present',
+                                       self.EXAMPLE_YAML_INT_SHOULD_GT,
+                                       record=self.RECORD)
+        resources = policy.run()
+        self.assertEqual(len(resources), 2,
+                         "expected full_page_writes to be > 0")
 
-        group_b_resources = [r for r in resources if r['DBParameterGroups'][0][
-            'DBParameterGroupName'] == 'rds-pg-group-b']
-        neither_a_nor_b = [r for r in resources if r['DBParameterGroups'][0][
-            'DBParameterGroupName'] not in self.REQUIRED_PARAMETERGROUPS]
-
-        self.assertGreaterEqual(len(group_a_resources), 1,
-                                "No rds-pg-group-a rds instances found")
-        self.assertGreaterEqual(len(group_b_resources), 1,
-                                "No rds-pg-group-b rds instances found")
-        self.assertEqual(len(neither_a_nor_b), 0,
-                         "Instances with ParameterGroups outside of the "
-                         "expected were found.")
+    def test_int_not_lt_zero(self):
+        self.change_environment(AWS_DEFAULT_REGION=self.DEFAULT_REGION)
+        policy = self._get_test_policy('equivalent_value_present',
+                                       self.EXAMPLE_YAML_INT_SHOULD_NOT_LT,
+                                       record=self.RECORD)
+        resources = policy.run()
+        self.assertEqual(len(resources), 0,
+                         "should not have passed any resources")
 
 
 class Resize(BaseTest):
