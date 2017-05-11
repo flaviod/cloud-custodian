@@ -68,7 +68,7 @@ def load_file(path, format=None, vars=None):
 
     with open(path) as fh:
         contents = fh.read()
-        
+
         if vars:
             try:
                 contents = contents.format(**vars)

@@ -115,12 +115,9 @@ def _load_vars(options):
         except IOError as e:
             eprint('Error loading vars file "{}": {}'.format(options.vars, e.strerror))
             sys.exit(1)
-        
-    # Provide some built-in variables
-    #vars.update({
-    #    'account': options.profile,  # should this be utils.get_account_id()?
-    #    'region': options.region,
-    #})
+
+    # TODO - provide builtin vars here (such as account)
+
     return vars
 
 
