@@ -1726,3 +1726,91 @@ class DeleteBucket(ScanBucket):
             Bucket=bucket['Name'], Delete={'Objects': objects}).get('Deleted', ())
         if self.get_bucket_style(bucket) != 'versioned':
             return results
+
+
+@actions.register('lifecycle')
+class Lifecycle(BucketActionBase):
+    """Action applies a lifecycle policy to versioned S3 buckets
+
+    :example:
+
+        .. code-block: yaml
+
+            policies:
+              - name: s3-apply-lifecycle
+                resource: s3
+                actions:
+                  - type: lifecycle
+                    id: default-retention-policy
+                    expire-days: 60
+                    expire-obj-del-marker: false
+                    noncur-expire-days: 60
+    """
+
+    schema = type_schema(
+        'lifecycle',
+        **{
+            'id': {'type': 'string'},
+            'expire-days': {'type': 'number'},
+            'expire-date': {'type': 'string'},
+            'expire-obj-del-marker': {'type': 'boolean'},
+            'noncur-expire-days': {'type': 'number'},
+            'abort-multipart-days': {'type': 'number'},
+            'trans-days': {'type': 'number'},
+            'trans-date': {'type': 'string'},
+            'trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
+            'noncurr-trans-days': {'type': 'number'},
+            'noncurr-trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
+          }
+    )
+
+    #permissions = ('s3:*',)
+
+    def process(self, buckets):
+
+        rule = {
+            'ID': self.data.get('id', 'default-retention-policy'),
+            'Status': 'Enabled',
+            'Expiration': {
+                'Days': self.data.get('expire-days', 60),
+                'ExpiredObjectDeleteMarker': self.data.get('expire-obj-del-marker', False),
+            },
+            'NoncurrentVersionExpiration': {
+                'NoncurrentDays': self.data.get('noncur-expire-days', 60),
+            },
+        }
+
+        if self.data.get('expire-date'):
+            rule['Expiration']['Date'] = self.data['expire-date']  # TODO parse date
+
+        if self.data.get('noncur-expire-days'):
+            rule['NoncurrentVersionExpiration'] = {
+                'NoncurrentDays': self.data['noncur-expire-days'],
+            }
+
+        if self.data.get('abort-multipart-days'):
+            rule['AbortIncompleteMultipartUpload'] = {
+                'DaysAfterInitiation': self.data['abort-multipart-days']
+            }
+
+        if (self.data.get('trans-days') or
+            self.data.get('trans-date') or
+            self.data.get('trans-type')):
+            rule['Transitions'] = [{
+                'Date': self.data.get('trans-date'),  # TODO parse date
+                'Days': self.data['trans-days'],
+                'StorageClass': self.data.get('trans-type', 'STANDARD_IA'),
+            }]
+
+        if self.data.get('noncurr-trans-days') or self.data.get('noncurr-trans-type'):
+            rule['NoncurrentVersionTransitions'] = [{
+                'NoncurrentDays': self.data['noncurr-trans-days'],
+                'StorageClass': self.data.get('noncurr-trans-type', 'STANDARD_IA'),
+            }]
+
+        config = {'Rules': [rule]}
+
+        session = local_session(self.manager.session_factory)
+        for bucket in buckets:
+            s3 = bucket_client(local_session(self.manager.session_factory), bucket)
+            s3.put_bucket_lifecycle_configuration(bucket['Name'], config)
