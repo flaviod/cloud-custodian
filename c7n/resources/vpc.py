@@ -155,6 +155,25 @@ class FlowLogFilter(Filter):
         return results
 
 
+@Vpc.filter_registry.register('security-group')
+class SecurityGroupFilter(net_filters.VpcFilter):
+    """Filter VPCs based on Security Group attributes
+
+    :example:
+
+        .. code-block: yaml
+
+            policies:
+              - name: gray-vpcs
+                resource: vpc
+                filters:
+                  - type: security-group
+                    key: tag:Color
+                    value: Gray
+    """
+    RelatedIdsExpression = '[SecurityGroups][].GroupId'
+
+
 @resources.register('subnet')
 class Subnet(QueryResourceManager):
 
