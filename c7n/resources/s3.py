@@ -1751,6 +1751,7 @@ class Lifecycle(BucketActionBase):
         'lifecycle',
         **{
             'id': {'type': 'string'},
+            'prefix': {'type': 'string'},
             'expire-days': {'type': 'number'},
             'expire-date': {'type': 'string'},
             'expire-obj-del-marker': {'type': 'boolean'},
@@ -1769,18 +1770,25 @@ class Lifecycle(BucketActionBase):
     def process(self, buckets):
 
         rule = {
-            'ID': self.data.get('id', 'default-retention-policy'),
+            'ID': self.data['id'],
             'Status': 'Enabled',
-            'Expiration': {
-                'Days': self.data.get('expire-days', 60),
-                'ExpiredObjectDeleteMarker': self.data.get('expire-obj-del-marker', False),
-            },
-            'NoncurrentVersionExpiration': {
-                'NoncurrentDays': self.data.get('noncur-expire-days', 60),
-            },
         }
 
+        if self.data.get('prefix'):
+            rule['Filter'] = {'Prefix': self.data['prefix']}
+
+        if self.data.get('expire-days'):
+            rule['Expiration'] = {}
+            rule['Expiration']['Days'] = self.data['expire-days']
+
+        if self.data.get('expire-obj-del-marker'):
+            if 'Expiration' not in rule:
+                rule['Expiration'] = {}
+            rule['Expiration']['ExpiredObjectDeleteMarker'] = self.data['expire-obj-del-marker']
+
         if self.data.get('expire-date'):
+            if 'Expiration' not in rule:
+                rule['Expiration'] = {}
             rule['Expiration']['Date'] = self.data['expire-date']  # TODO parse date
 
         if self.data.get('noncur-expire-days'):
@@ -1793,24 +1801,36 @@ class Lifecycle(BucketActionBase):
                 'DaysAfterInitiation': self.data['abort-multipart-days']
             }
 
-        if (self.data.get('trans-days') or
-            self.data.get('trans-date') or
-            self.data.get('trans-type')):
+        if self.data.get('trans-days'):
             rule['Transitions'] = [{
-                'Date': self.data.get('trans-date'),  # TODO parse date
                 'Days': self.data['trans-days'],
-                'StorageClass': self.data.get('trans-type', 'STANDARD_IA'),
             }]
 
-        if self.data.get('noncurr-trans-days') or self.data.get('noncurr-trans-type'):
+        if self.data.get('trans-type'):
+            if 'Transitions' not in rule:
+                rule['Transitions'] = [{}]
+            rule['Transitions'][0]['StorageClass'] = self.data['trans-type']
+
+        if self.data.get('trans-date'):
+            if 'Transitions' not in rule:
+                rule['Transitions'] = [{}]
+            rule['Transitions'][0]['Date'] = self.data['trans-date']  # TODO parse date
+
+        if self.data.get('noncurr-trans-days'):
             rule['NoncurrentVersionTransitions'] = [{
                 'NoncurrentDays': self.data['noncurr-trans-days'],
-                'StorageClass': self.data.get('noncurr-trans-type', 'STANDARD_IA'),
             }]
+            
+        if self.data.get('noncurr-trans-type'):
+            if 'NoncurrentVersionTransitions' not in rule:
+                rule['NoncurrentVersionTransitions'] = [{}]
+            rule['NoncurrentVersionTransitions'][0]['StorageClass'] = self.data['noncurr-trans-type']
 
         config = {'Rules': [rule]}
+
+        print config
 
         session = local_session(self.manager.session_factory)
         for bucket in buckets:
             s3 = bucket_client(local_session(self.manager.session_factory), bucket)
-            s3.put_bucket_lifecycle_configuration(bucket['Name'], config)
+            s3.put_bucket_lifecycle_configuration(Bucket=bucket['Name'], LifecycleConfiguration=config)
