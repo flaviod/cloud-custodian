@@ -1762,10 +1762,10 @@ class Lifecycle(BucketActionBase):
             'trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
             'noncurr-trans-days': {'type': 'number'},
             'noncurr-trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
-          }
+        }
     )
 
-    #permissions = ('s3:*',)
+    permissions = ('s3:PutLifecycleConfiguration',)
 
     def process(self, buckets):
 
@@ -1820,17 +1820,16 @@ class Lifecycle(BucketActionBase):
             rule['NoncurrentVersionTransitions'] = [{
                 'NoncurrentDays': self.data['noncurr-trans-days'],
             }]
-            
+
         if self.data.get('noncurr-trans-type'):
-            if 'NoncurrentVersionTransitions' not in rule:
-                rule['NoncurrentVersionTransitions'] = [{}]
-            rule['NoncurrentVersionTransitions'][0]['StorageClass'] = self.data['noncurr-trans-type']
+            key = 'NoncurrentVersionTransitions'
+            if key not in rule:
+                rule[key] = [{}]
+            rule[key][0]['StorageClass'] = self.data['noncurr-trans-type']
 
         config = {'Rules': [rule]}
 
-        print config
-
-        session = local_session(self.manager.session_factory)
         for bucket in buckets:
             s3 = bucket_client(local_session(self.manager.session_factory), bucket)
-            s3.put_bucket_lifecycle_configuration(Bucket=bucket['Name'], LifecycleConfiguration=config)
+            s3.put_bucket_lifecycle_configuration(
+                Bucket=bucket['Name'], LifecycleConfiguration=config)
