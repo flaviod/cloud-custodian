@@ -50,6 +50,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 from botocore.vendored.requests.exceptions import SSLError
 from concurrent.futures import as_completed
+from dateutil.parser import parse
 
 from c7n.actions import ActionRegistry, BaseAction, AutoTagUser, PutMetric
 from c7n.filters import (
@@ -1760,8 +1761,8 @@ class Lifecycle(BucketActionBase):
             'trans-days': {'type': 'number'},
             'trans-date': {'type': 'string'},
             'trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
-            'noncurr-trans-days': {'type': 'number'},
-            'noncurr-trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
+            'noncur-trans-days': {'type': 'number'},
+            'noncur-trans-type': {'enum': ['GLACIER', 'STANDARD_IA']},
         }
     )
 
@@ -1789,7 +1790,7 @@ class Lifecycle(BucketActionBase):
         if self.data.get('expire-date'):
             if 'Expiration' not in rule:
                 rule['Expiration'] = {}
-            rule['Expiration']['Date'] = self.data['expire-date']  # TODO parse date
+            rule['Expiration']['Date'] = parse(self.data['expire-date'])
 
         if self.data.get('noncur-expire-days'):
             rule['NoncurrentVersionExpiration'] = {
@@ -1814,18 +1815,18 @@ class Lifecycle(BucketActionBase):
         if self.data.get('trans-date'):
             if 'Transitions' not in rule:
                 rule['Transitions'] = [{}]
-            rule['Transitions'][0]['Date'] = self.data['trans-date']  # TODO parse date
+            rule['Transitions'][0]['Date'] = parse(self.data['trans-date'])
 
-        if self.data.get('noncurr-trans-days'):
+        if self.data.get('noncur-trans-days'):
             rule['NoncurrentVersionTransitions'] = [{
-                'NoncurrentDays': self.data['noncurr-trans-days'],
+                'NoncurrentDays': self.data['noncur-trans-days'],
             }]
 
-        if self.data.get('noncurr-trans-type'):
+        if self.data.get('noncur-trans-type'):
             key = 'NoncurrentVersionTransitions'
             if key not in rule:
                 rule[key] = [{}]
-            rule[key][0]['StorageClass'] = self.data['noncurr-trans-type']
+            rule[key][0]['StorageClass'] = self.data['noncur-trans-type']
 
         config = {'Rules': [rule]}
 
