@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jmespath
 from c7n.utils import local_session, type_schema
 
 from .core import Filter, ValueFilter, FilterValidationError
@@ -28,24 +27,6 @@ class SecurityGroupFilter(RelatedResourceFilter):
 
     RelatedResource = "c7n.resources.vpc.SecurityGroup"
     AnnotationKey = "matched-security-groups"
-
-
-class VpcFilter(RelatedResourceFilter):
-    """Filter VPCs by associated security groups."""
-    schema = type_schema(
-        'security-group', rinherit=ValueFilter.schema,
-        **{'match-resource':{'type': 'boolean'},
-           'operator': {'enum': ['and', 'or']}})
-
-    RelatedResource = "c7n.resources.vpc.SecurityGroup"
-    AnnotationKey = "matched-vpcs"
-
-    def get_related_ids(self, resources):
-        client = local_session(self.manager.session_factory).client('ec2')
-        vpc_ids = [vpc['VpcId'] for vpc in resources]
-        vpc_filter = {'Name': 'vpc-id', 'Values': vpc_ids}
-        response = client.describe_security_groups(Filters=[vpc_filter])
-        return set(jmespath.search(self.RelatedIdsExpression, response))
 
 
 class SubnetFilter(RelatedResourceFilter):

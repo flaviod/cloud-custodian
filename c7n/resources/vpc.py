@@ -23,6 +23,7 @@ from c7n.actions import BaseAction, ModifyVpcSecurityGroupsAction
 from c7n.filters import (
     DefaultVpcBase, Filter, FilterValidationError, ValueFilter)
 import c7n.filters.vpc as net_filters
+from c7n.filters.related import RelatedResourceFilter
 from c7n.filters.revisions import Diff
 from c7n.query import QueryResourceManager
 from c7n.manager import resources
@@ -156,7 +157,7 @@ class FlowLogFilter(Filter):
 
 
 @Vpc.filter_registry.register('security-group')
-class SecurityGroupFilter(net_filters.VpcFilter):
+class SecurityGroupFilter(RelatedResourceFilter):
     """Filter VPCs based on Security Group attributes
 
     :example:
@@ -171,7 +172,20 @@ class SecurityGroupFilter(net_filters.VpcFilter):
                     key: tag:Color
                     value: Gray
     """
+    schema = type_schema(
+        'security-group', rinherit=ValueFilter.schema,
+        **{'match-resource':{'type': 'boolean'},
+           'operator': {'enum': ['and', 'or']}})
+    RelatedResource = "c7n.resources.vpc.SecurityGroup"
     RelatedIdsExpression = '[SecurityGroups][].GroupId'
+    AnnotationKey = "matched-vpcs"
+
+    def get_related_ids(self, resources):
+        client = local_session(self.manager.session_factory).client('ec2')
+        vpc_ids = [vpc['VpcId'] for vpc in resources]
+        vpc_filter = {'Name': 'vpc-id', 'Values': vpc_ids}
+        response = client.describe_security_groups(Filters=[vpc_filter])
+        return set(jmespath.search(self.RelatedIdsExpression, response))
 
 
 @resources.register('subnet')
