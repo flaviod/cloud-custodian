@@ -181,11 +181,13 @@ class SecurityGroupFilter(RelatedResourceFilter):
     AnnotationKey = "matched-vpcs"
 
     def get_related_ids(self, resources):
-        client = local_session(self.manager.session_factory).client('ec2')
         vpc_ids = [vpc['VpcId'] for vpc in resources]
-        vpc_filter = {'Name': 'vpc-id', 'Values': vpc_ids}
-        response = client.describe_security_groups(Filters=[vpc_filter])
-        return set(jmespath.search(self.RelatedIdsExpression, response))
+        vpc_group_ids = {
+            g['GroupId'] for g in
+            self.manager.get_resource_manager('security-group').resources()
+            if g.get('VpcId', '') in vpc_ids
+        }
+        return vpc_group_ids
 
 
 @resources.register('subnet')
