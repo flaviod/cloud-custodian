@@ -69,9 +69,13 @@ class AppELB(QueryResourceManager):
         _describe_appelb_tags(
             albs, self.session_factory,
             self.executor_factory, self.retry)
-        _collect_elbv2_attributes(
-            albs, self.session_factory,
-            self.executor_factory, self.retry)
+        try:
+            _collect_elbv2_attributes(
+                albs, self.session_factory,
+                self.executor_factory, self.retry)
+        except IOError as placebo_err:
+            print placebo_err
+
         return albs
 
 
@@ -88,7 +92,7 @@ def _collect_elbv2_attributes(elbs, session_factory, executor_factory, retry):
                 v = True
             elif v == 'false':
                 v = False
-            elif str.isdigit(v):
+            elif v.isdigit():
                 v = int(v)
             attributes[pair['Key']] = v
 

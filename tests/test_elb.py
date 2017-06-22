@@ -410,9 +410,41 @@ class TestElbLogging(BaseTest):
             session_factory=session_factory)
 
         resources = policy.run()
-        from pprint import pprint
-        pprint(resources)
+
+        client = session_factory().client('elb')
+        for elb in resources:
+            elb_name = elb['LoadBalancerName']
+            results = client.describe_load_balancer_attributes(
+                            LoadBalancerName=elb_name)
+            elb['Attributes'] = results['LoadBalancerAttributes']
+
         self.assertEqual(resources[0]['Attributes']['AccessLog']['EmitInterval'], 5)
         self.assertEqual(resources[0]['Attributes']['AccessLog']['S3BucketName'], 'elbv2logtest')
         self.assertEqual(resources[0]['Attributes']['AccessLog']['S3BucketPrefix'], 'elblogs')
         self.assertTrue(resources[0]['Attributes']['AccessLog']['Enabled'])
+
+
+    def test_disable_s3_logging(self):
+        session_factory = self.replay_flight_data('test_elb_disable_s3_logging')
+        policy = self.load_policy({
+            'name': 'test-disable-s3-logging',
+            'resource': 'elb',
+            'filters': [
+                {'type': 'value', 'key': 'LoadBalancerName',
+                 'value': 'elbclassic'}],
+            'actions': [{'type': 'disable-s3-logging'}, ]
+        },
+            session_factory=session_factory)
+
+        resources = policy.run()
+
+        client = session_factory().client('elb')
+        for elb in resources:
+            elb_name = elb['LoadBalancerName']
+            results = client.describe_load_balancer_attributes(
+                            LoadBalancerName=elb_name)
+            elb['Attributes'] = results['LoadBalancerAttributes']
+
+        self.assertFalse(resources[0]['Attributes']['AccessLog']['Enabled'])
+
+

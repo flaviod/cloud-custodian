@@ -78,8 +78,12 @@ class ELB(QueryResourceManager):
     def augment(self, resources):
         _elb_tags(
             resources, self.session_factory, self.executor_factory, self.retry)
-        _collect_elb_attributes(
-            resources, self.session_factory, self.executor_factory, self.retry)
+        try:
+            _collect_elb_attributes(
+                resources, self.session_factory, self.executor_factory, self.retry)
+        except IOError as placebo_err:
+            print placebo_err
+
         return resources
 
 
