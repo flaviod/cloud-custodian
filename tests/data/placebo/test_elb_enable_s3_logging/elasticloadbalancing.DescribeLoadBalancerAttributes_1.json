@@ -1,0 +1,34 @@
+{
+    "status_code": 200, 
+    "data": {
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "349334a7-5797-11e7-9530-51e3aace3266", 
+            "HTTPHeaders": {
+                "x-amzn-requestid": "349334a7-5797-11e7-9530-51e3aace3266", 
+                "date": "Thu, 22 Jun 2017 22:07:38 GMT", 
+                "content-length": "914", 
+                "content-type": "text/xml"
+            }
+        }, 
+        "LoadBalancerAttributes": {
+            "ConnectionDraining": {
+                "Enabled": false, 
+                "Timeout": 300
+            }, 
+            "CrossZoneLoadBalancing": {
+                "Enabled": false
+            }, 
+            "ConnectionSettings": {
+                "IdleTimeout": 60
+            }, 
+            "AccessLog": {
+                "S3BucketPrefix": "elblogs", 
+                "EmitInterval": 5, 
+                "Enabled": false, 
+                "S3BucketName": "elbv2logtest"
+            }
+        }
+    }
+}

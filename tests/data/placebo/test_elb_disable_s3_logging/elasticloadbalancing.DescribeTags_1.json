@@ -1,0 +1,36 @@
+{
+    "status_code": 200, 
+    "data": {
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "33da1db4-5797-11e7-99e1-bb3a839fc4e0", 
+            "HTTPHeaders": {
+                "x-amzn-requestid": "33da1db4-5797-11e7-99e1-bb3a839fc4e0", 
+                "date": "Thu, 22 Jun 2017 22:07:37 GMT", 
+                "content-length": "740", 
+                "content-type": "text/xml"
+            }
+        }, 
+        "TagDescriptions": [
+            {
+                "Tags": [
+                    {
+                        "Value": "", 
+                        "Key": "test-tag-1"
+                    }
+                ], 
+                "LoadBalancerName": "dhruv-test-wyp927"
+            }, 
+            {
+                "Tags": [
+                    {
+                        "Value": "", 
+                        "Key": "elbtest"
+                    }
+                ], 
+                "LoadBalancerName": "elbclassic"
+            }
+        ]
+    }
+}

@@ -1,0 +1,142 @@
+{
+    "status_code": 200, 
+    "data": {
+        "LoadBalancerDescriptions": [
+            {
+                "Subnets": [
+                    "subnet-05cf9b60", 
+                    "subnet-ecfb30a4"
+                ], 
+                "CanonicalHostedZoneNameID": "Z35SXDOTRQ7X7K", 
+                "VPCId": "vpc-f1516b97", 
+                "ListenerDescriptions": [
+                    {
+                        "Listener": {
+                            "InstancePort": 80, 
+                            "LoadBalancerPort": 80, 
+                            "Protocol": "HTTP", 
+                            "InstanceProtocol": "HTTP"
+                        }, 
+                        "PolicyNames": []
+                    }
+                ], 
+                "HealthCheck": {
+                    "HealthyThreshold": 10, 
+                    "Interval": 30, 
+                    "Target": "HTTP:80/index.html", 
+                    "Timeout": 5, 
+                    "UnhealthyThreshold": 2
+                }, 
+                "BackendServerDescriptions": [], 
+                "Instances": [], 
+                "DNSName": "internal-dhruv-test-wyp927-1682430078.us-east-1.elb.amazonaws.com", 
+                "SecurityGroups": [
+                    "sg-f8c78787"
+                ], 
+                "Policies": {
+                    "LBCookieStickinessPolicies": [], 
+                    "AppCookieStickinessPolicies": [], 
+                    "OtherPolicies": []
+                }, 
+                "LoadBalancerName": "dhruv-test-wyp927", 
+                "CreatedTime": {
+                    "hour": 12, 
+                    "__class__": "datetime", 
+                    "month": 4, 
+                    "second": 12, 
+                    "microsecond": 80000, 
+                    "year": 2017, 
+                    "day": 28, 
+                    "minute": 12
+                }, 
+                "AvailabilityZones": [
+                    "us-east-1a", 
+                    "us-east-1c"
+                ], 
+                "Scheme": "internal", 
+                "SourceSecurityGroup": {
+                    "OwnerAlias": "644160558196", 
+                    "GroupName": "FancyTestGroupPublic"
+                }
+            }, 
+            {
+                "Subnets": [
+                    "subnet-3a334610", 
+                    "subnet-914763e7", 
+                    "subnet-e3b194de", 
+                    "subnet-efbcccb7"
+                ], 
+                "CanonicalHostedZoneNameID": "Z35SXDOTRQ7X7K", 
+                "CanonicalHostedZoneName": "elbclassic-285531544.us-east-1.elb.amazonaws.com", 
+                "ListenerDescriptions": [
+                    {
+                        "Listener": {
+                            "InstancePort": 80, 
+                            "LoadBalancerPort": 80, 
+                            "Protocol": "HTTP", 
+                            "InstanceProtocol": "HTTP"
+                        }, 
+                        "PolicyNames": []
+                    }
+                ], 
+                "HealthCheck": {
+                    "HealthyThreshold": 10, 
+                    "Interval": 30, 
+                    "Target": "HTTP:80/index.html", 
+                    "Timeout": 5, 
+                    "UnhealthyThreshold": 2
+                }, 
+                "VPCId": "vpc-d2d616b5", 
+                "BackendServerDescriptions": [], 
+                "Instances": [
+                    {
+                        "InstanceId": "i-00ff128b8184ce7b1"
+                    }
+                ], 
+                "DNSName": "elbclassic-285531544.us-east-1.elb.amazonaws.com", 
+                "SecurityGroups": [
+                    "sg-6c7fa917"
+                ], 
+                "Policies": {
+                    "LBCookieStickinessPolicies": [], 
+                    "AppCookieStickinessPolicies": [], 
+                    "OtherPolicies": []
+                }, 
+                "LoadBalancerName": "elbclassic", 
+                "CreatedTime": {
+                    "hour": 20, 
+                    "__class__": "datetime", 
+                    "month": 6, 
+                    "second": 5, 
+                    "microsecond": 190000, 
+                    "year": 2017, 
+                    "day": 5, 
+                    "minute": 38
+                }, 
+                "AvailabilityZones": [
+                    "us-east-1a", 
+                    "us-east-1b", 
+                    "us-east-1d", 
+                    "us-east-1e"
+                ], 
+                "Scheme": "internet-facing", 
+                "SourceSecurityGroup": {
+                    "OwnerAlias": "644160558196", 
+                    "GroupName": "default"
+                }
+            }
+        ], 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "33bcaa9a-5797-11e7-99e1-bb3a839fc4e0", 
+            "HTTPHeaders": {
+                "x-amzn-requestid": "33bcaa9a-5797-11e7-99e1-bb3a839fc4e0", 
+                "vary": "Accept-Encoding", 
+                "content-length": "4202", 
+                "content-type": "text/xml", 
+                "date": "Thu, 22 Jun 2017 22:07:36 GMT"
+            }
+        }
+    }
+}

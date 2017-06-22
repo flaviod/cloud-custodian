@@ -1,0 +1,25 @@
+{
+    "status_code": 200, 
+    "data": {
+        "LoadBalancerAttributes": {
+            "AccessLog": {
+                "S3BucketPrefix": "elblogs", 
+                "EmitInterval": 5, 
+                "Enabled": false, 
+                "S3BucketName": "elbv2logtest"
+            }
+        }, 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "34137ce8-5797-11e7-a46e-5f679de48413", 
+            "HTTPHeaders": {
+                "x-amzn-requestid": "34137ce8-5797-11e7-a46e-5f679de48413", 
+                "date": "Thu, 22 Jun 2017 22:07:38 GMT", 
+                "content-length": "650", 
+                "content-type": "text/xml"
+            }
+        }, 
+        "LoadBalancerName": "elbclassic"
+    }
+}
