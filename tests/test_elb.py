@@ -386,3 +386,31 @@ class TestModifyVpcSecurityGroupsAction(BaseTest):
         # Check that it is indeed the isolation group on the ELB
         self.assertEqual(
             after_resources[0]['SecurityGroups'][0], default_sg_id)
+
+
+class TestElbLogging(BaseTest):
+
+    def test_enable_s3_logging(self):
+        session_factory = self.replay_flight_data('test_elb_enable_s3_logging')
+        policy = self.load_policy({
+            'name': 'test-enable-s3-logging',
+            'resource': 'elb',
+            'filters': [
+                {'type': 'value', 'key': 'LoadBalancerName',
+                 'value': 'elbclassic'}],
+            'actions': [
+                {'type': 'enable-s3-logging',
+                 'bucket': 'elbv2logtest',
+                 'prefix': 'elblogs',
+                 'emit_interval': 5
+                 },
+            ]},
+            session_factory=session_factory)
+
+        resources = policy.run()
+        from pprint import pprint
+        pprint(resources)
+        self.assertEqual(resources[0]['Attributes']['AccessLog']['EmitInterval'], 5)
+        self.assertEqual(resources[0]['Attributes']['AccessLog']['S3BucketName'], 'elbv2logtest')
+        self.assertEqual(resources[0]['Attributes']['AccessLog']['S3BucketPrefix'], 'elblogs')
+        self.assertTrue(resources[0]['Attributes']['AccessLog']['Enabled'])
