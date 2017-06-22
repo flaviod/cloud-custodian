@@ -140,6 +140,9 @@ class SubnetFilter(net_filters.SubnetFilter):
     RelatedIdsExpression = "AvailabilityZones[].SubnetId"
 
 
+filters.register('network-location', net_filters.NetworkLocation)
+
+
 @actions.register('enable-s3-logging')
 class EnableS3Logging(BaseAction):
     """ Action to enable S3 logging for an application loadbalancer.
