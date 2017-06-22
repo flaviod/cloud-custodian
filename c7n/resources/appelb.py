@@ -61,14 +61,42 @@ class AppELB(QueryResourceManager):
     def get_permissions(cls):
         # override as the service is not the iam prefix
         return ("elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeLoadBalancerAttributes",
                 "elasticloadbalancing:DescribeTags")
 
     def augment(self, albs):
+        print("elbv2 augmentation")
         _describe_appelb_tags(
             albs, self.session_factory,
             self.executor_factory, self.retry)
-
+        _collect_elbv2_attributes(
+            albs, self.session_factory,
+            self.executor_factory, self.retry)
         return albs
+
+
+def _collect_elbv2_attributes(elbs, session_factory, executor_factory, retry):
+    def add_attributes_to_elb(elb):
+        client = local_session(session_factory).client('elbv2')
+        elb_arn = elb['LoadBalancerArn']
+        results = retry(client.describe_load_balancer_attributes,
+                        LoadBalancerArn=elb_arn)
+        attributes = dict()
+        for pair in results['Attributes']:
+            v = pair['Value']
+            if v == 'true':
+                v = True
+            elif v == 'false':
+                v = False
+            elif str.isdigit(v):
+                v = int(v)
+            attributes[pair['Key']] = v
+
+        elb['Attributes'] = attributes
+        print(attributes)
+
+    with executor_factory(max_workers=10) as w:
+        list(w.map(add_attributes_to_elb, elbs))
 
 
 def _describe_appelb_tags(albs, session_factory, executor_factory, retry):
@@ -110,6 +138,101 @@ class SecurityGroupFilter(net_filters.SecurityGroupFilter):
 class SubnetFilter(net_filters.SubnetFilter):
 
     RelatedIdsExpression = "AvailabilityZones[].SubnetId"
+
+
+@actions.register('enable-s3-logging')
+class EnableS3Logging(BaseAction):
+    """ Action to enable S3 logging for an application loadbalancer.
+
+    :example:
+
+        .. code-block: yaml
+
+        policies:
+          - name: elbv2-test
+            resource: app-elb
+            filters:
+              - type: value
+                key: Attributes."access_logs.s3.enabled"
+                value: False
+            actions:
+              - type: enable-s3-logging
+                bucket: elbv2logtest
+                prefix: dahlogs
+                deletion_protection: on
+                idle_timeout: 50
+
+    """
+    schema = type_schema('enable-s3-logging',
+        bucket={'type': 'string'},
+        prefix={'type': 'string'},
+        idle_timeout={'type': 'integer'},
+        deletion_protection={'type': 'boolean'},
+    )
+    permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
+
+    def process(self, resources):
+        client = local_session(self.manager.session_factory).client('elbv2')
+        for elb in resources:
+            elb_arn = elb['LoadBalancerArn']
+            attributes = [{
+                'Key':'access_logs.s3.enabled',
+                'Value':'true'
+            }]
+            for key in ['bucket', 'prefix', ]:
+                if key in self.data:
+                    attributes.append({
+                        'Key': 'access_logs.s3.{k}'.format(k=key),
+                        'Value': str(self.data[key])
+                    })
+
+            if 'deletion_protection' in self.data:
+                attributes.append({
+                    'Key':'deletion_protection.enabled',
+                    'Value': str(self.data['deletion_protection']).lower()
+                })
+
+            if 'idle_timeout' in self.data:
+                attributes.append({
+                    'Key': 'idle_timeout.timeout_seconds',
+                    'Value': str(self.data['idle_timeout'])
+                })
+
+            # TODO handle client errors
+            client.modify_load_balancer_attributes(LoadBalancerArn=elb_arn,
+                                                   Attributes=attributes)
+        return resources
+
+
+@actions.register('disable-s3-logging')
+class DisableS3Logging(BaseAction):
+    """Disable s3 logging for Application Loadbalancer instances.
+
+    :example:
+
+        .. code-block: yaml
+
+        policies:
+          - name: turn-off-elb-logs
+            resource: elb
+            actions:
+              - type: disable-elb-logging
+
+    """
+    schema = type_schema('disable-s3-logging')
+    permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
+
+    def process(self, resources):
+        client = local_session(self.manager.session_factory).client('elbv2')
+        for elb in resources:
+            elb_arn = elb['LoadBalancerArn']
+            # TODO handle client errors
+            client.modify_load_balancer_attributes(LoadBalancerArn=elb_arn,
+                                                   Attributes=[{
+                                                       'Key': 'access_logs.s3.enabled',
+                                                       'Value': 'false'
+                                                   }])
+        return resources
 
 
 @actions.register('mark-for-op')

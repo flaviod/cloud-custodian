@@ -72,10 +72,13 @@ class ELB(QueryResourceManager):
     @classmethod
     def get_permissions(cls):
         return ('elasticloadbalancing:DescribeLoadBalancers',
+                'elasticloadbalancing:DescribeLoadBalancerAttributes',
                 'elasticloadbalancing:DescribeTags')
 
     def augment(self, resources):
         _elb_tags(
+            resources, self.session_factory, self.executor_factory, self.retry)
+        _collect_elb_attributes(
             resources, self.session_factory, self.executor_factory, self.retry)
         return resources
 
@@ -107,6 +110,18 @@ def _elb_tags(elbs, session_factory, executor_factory, retry):
 
     with executor_factory(max_workers=2) as w:
         list(w.map(process_tags, chunks(elbs, 20)))
+
+
+def _collect_elb_attributes(elbs, session_factory, executor_factory, retry):
+    def add_attributes_to_elb(elb):
+        client = local_session(session_factory).client('elb')
+        elb_name = elb['LoadBalancerName']
+
+        results = retry(client.describe_load_balancer_attributes,
+                        LoadBalancerName=elb_name)
+        elb['Attributes'] = results['LoadBalancerAttributes']
+    with executor_factory(max_workers=10) as w:
+        list(w.map(add_attributes_to_elb, elbs))
 
 
 @actions.register('mark-for-op')
@@ -330,6 +345,86 @@ class ELBModifyVpcSecurityGroups(ModifyVpcSecurityGroupsAction):
             client.apply_security_groups_to_load_balancer(
                 LoadBalancerName=l['LoadBalancerName'],
                 SecurityGroups=groups[idx])
+
+
+@actions.register('enable-s3-logging')
+class EnableS3Logging(BaseAction):
+    """ Action to enable S3 logging for Elastic Load Balancers.
+
+    :example:
+
+        .. code-block: yaml
+
+        policies:
+          - name: elb-test
+            resource: app-elb
+            filters:
+              - type: value
+                key: Attributes."access_logs.s3.enabled"
+                value: False
+            actions:
+              - type: enable-s3-logging
+                bucket: elblogtest
+                prefix: dahlogs
+                emit_interval: 5
+
+    """
+    schema = type_schema('enable-s3-logging',
+        bucket={'type': 'string'},
+        prefix={'type': 'string'},
+        emit_interval={'type': 'integer'},
+    )
+    permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
+
+    def process(self, resources):
+        client = local_session(self.manager.session_factory).client('elb')
+        for elb in resources:
+            elb_name = elb['LoadBalancerName']
+            log_attrs = {'Enabled':True}
+            if 'bucket' in self.data:
+                log_attrs['S3BucketName'] = self.data['bucket']
+            if 'prefix' in self.data:
+                log_attrs['S3BucketPrefix'] = self.data['prefix']
+            if 'emit_interval' in self.data:
+                log_attrs['EmitInterval'] = self.data['emit_interval']
+
+            # TODO handle client errors
+            client.modify_load_balancer_attributes(LoadBalancerName=elb_name,
+                                                   LoadBalancerAttributes={
+                                                       'AccessLog': log_attrs
+                                                   })
+        return resources
+
+
+@actions.register('disable-s3-logging')
+class DisableS3Logging(BaseAction):
+    """Disable s3 logging for ElasticLoadBalancers.
+
+    :example:
+
+        .. code-block: yaml
+
+        policies:
+          - name: turn-off-elb-logs
+            resource: elb
+            actions:
+              - type: disable-elb-logging
+
+    """
+    schema = type_schema('disable-s3-logging')
+    permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
+
+    def process(self, resources):
+        client = local_session(self.manager.session_factory).client('elb')
+        for elb in resources:
+            elb_name = elb['LoadBalancerName']
+            # TODO handle client errors
+            client.modify_load_balancer_attributes(LoadBalancerName=elb_name,
+                                                   LoadBalancerAttributes={
+                                                       'AccessLog': {
+                                                           'Enabled': False}
+                                                   })
+        return resources
 
 
 def is_ssl(b):
