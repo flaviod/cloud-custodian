@@ -337,23 +337,22 @@ class ELBModifyVpcSecurityGroups(ModifyVpcSecurityGroupsAction):
 
 @actions.register('enable-s3-logging')
 class EnableS3Logging(BaseAction):
-    """ Action to enable S3 logging for Elastic Load Balancers.
+    """Action to enable S3 logging for Elastic Load Balancers.
 
     :example:
 
         .. code-block: yaml
 
-        policies:
-          - name: elb-test
-            resource: app-elb
-            filters:
-              - type: is-not-logging
-            actions:
-              - type: enable-s3-logging
-                bucket: elblogtest
-                prefix: dahlogs
-                emit_interval: 5
-
+            policies:
+              - name: elb-test
+                resource: app-elb
+                filters:
+                  - type: is-not-logging
+                actions:
+                  - type: enable-s3-logging
+                    bucket: elblogtest
+                    prefix: dahlogs
+                    emit_interval: 5
     """
     schema = type_schema('enable-s3-logging',
         bucket={'type': 'string'},
@@ -389,15 +388,14 @@ class DisableS3Logging(BaseAction):
 
         .. code-block: yaml
 
-        policies:
-          - name: turn-off-elb-logs
-            resource: elb
-            filters:
-              - type: is-logging
-                bucket: prodbucket
-            actions:
-              - type: disable-elb-logging
-
+            policies:
+              - name: turn-off-elb-logs
+                resource: elb
+                filters:
+                  - type: is-logging
+                    bucket: prodbucket
+                actions:
+                  - type: disable-elb-logging
     """
     schema = type_schema('disable-s3-logging')
     permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
@@ -776,26 +774,25 @@ class ELBAttributeFilterBase(object):
 
 @filters.register('is-logging')
 class IsLoggingFilter(Filter, ELBAttributeFilterBase):
-    """ Matches ELBs that are logging to S3.
+    """Matches ELBs that are logging to S3.
         bucket and prefix are optional
 
     :example:
 
         .. code-block: yaml
 
-        policies:
-        - name: elb-is-logging-test
-          resource: elb
-          filters:
-            - type: is-logging
+            policies:
+            - name: elb-is-logging-test
+              resource: elb
+              filters:
+                - type: is-logging
 
-        - name: elb-is-logging-bucket-and-prefix-test
-          resource: elb
-          filters:
-            - type: is-logging
-              bucket: prodlogs
-              prefix: elblogs
-
+            - name: elb-is-logging-bucket-and-prefix-test
+              resource: elb
+              filters:
+                - type: is-logging
+                  bucket: prodlogs
+                  prefix: elblogs
     """
 
     permissions = ("elasticloadbalancing:DescribeLoadBalancerAttributes",)

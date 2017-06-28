@@ -120,26 +120,25 @@ filters.register('network-location', net_filters.NetworkLocation)
 
 @actions.register('enable-s3-logging')
 class EnableS3Logging(BaseAction):
-    """ Action to enable S3 logging for an application loadbalancer.
+    """Action to enable S3 logging for an application loadbalancer.
 
     :example:
 
         .. code-block: yaml
 
-        policies:
-          - name: elbv2-test
-            resource: app-elb
-            filters:
-              - type: value
-                key: Attributes."access_logs.s3.enabled"
-                value: False
-            actions:
-              - type: enable-s3-logging
-                bucket: elbv2logtest
-                prefix: dahlogs
-                deletion_protection: on
-                idle_timeout: 50
-
+            policies:
+              - name: elbv2-test
+                resource: app-elb
+                filters:
+                  - type: value
+                    key: Attributes."access_logs.s3.enabled"
+                    value: False
+                actions:
+                  - type: enable-s3-logging
+                    bucket: elbv2logtest
+                    prefix: dahlogs
+                    deletion_protection: on
+                    idle_timeout: 50
     """
     schema = type_schema('enable-s3-logging',
         bucket={'type': 'string'},
@@ -189,12 +188,11 @@ class DisableS3Logging(BaseAction):
 
         .. code-block: yaml
 
-        policies:
-          - name: turn-off-elb-logs
-            resource: elb
-            actions:
-              - type: disable-elb-logging
-
+            policies:
+              - name: turn-off-elb-logs
+                resource: elb
+                actions:
+                  - type: disable-elb-logging
     """
     schema = type_schema('disable-s3-logging')
     permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
