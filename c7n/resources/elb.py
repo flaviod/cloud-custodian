@@ -814,46 +814,46 @@ class IsLoggingFilter(Filter, ELBAttributeFilterBase):
                     'AccessLog'].get('S3BucketPrefix', None))
                 ]
 
-    @filters.register('is-not-logging')
-    class IsNotLoggingFilter(Filter, ELBAttributeFilterBase):
-        """ Matches ELBs that are NOT logging to S3.
-            or do not match the optional bucket and/or prefix.
+@filters.register('is-not-logging')
+class IsNotLoggingFilter(Filter, ELBAttributeFilterBase):
+    """ Matches ELBs that are NOT logging to S3.
+        or do not match the optional bucket and/or prefix.
 
-        :example:
+    :example:
 
-            .. code-block: yaml
+        .. code-block: yaml
 
-                policies:
-                    - name: elb-is-not-logging-test
-                      resource: elb
-                      filters:
-                        - type: is-not-logging
+            policies:
+                - name: elb-is-not-logging-test
+                  resource: elb
+                  filters:
+                    - type: is-not-logging
 
-                    - name: is-not-logging-bucket-and-prefix-test
-                      resource: app-elb
-                      filters:
-                        - type: is-not-logging
-                          bucket: prodlogs
-                          prefix: alblogs
+                - name: is-not-logging-bucket-and-prefix-test
+                  resource: app-elb
+                  filters:
+                    - type: is-not-logging
+                      bucket: prodlogs
+                      prefix: alblogs
 
-        """
-        permissions = ("elasticloadbalancing:DescribeLoadBalancerAttributes",)
-        schema = type_schema('is-not-logging',
-                             bucket={'type': 'string'},
-                             prefix={'type': 'string'}
-                             )
+    """
+    permissions = ("elasticloadbalancing:DescribeLoadBalancerAttributes",)
+    schema = type_schema('is-not-logging',
+                         bucket={'type': 'string'},
+                         prefix={'type': 'string'}
+                         )
 
-        def process(self, resources, event=None):
-            self.initialize(resources)
-            bucket_name = self.data.get('bucket', None)
-            bucket_prefix = self.data.get('prefix', None)
+    def process(self, resources, event=None):
+        self.initialize(resources)
+        bucket_name = self.data.get('bucket', None)
+        bucket_prefix = self.data.get('prefix', None)
 
-            return [elb for elb in resources
-                    if not elb['Attributes']['AccessLog']['Enabled'] or
-                    (bucket_name and bucket_name != elb['Attributes'][
-                        'AccessLog'].get(
-                        'S3BucketName', None)) or
-                    (bucket_prefix and bucket_prefix != elb['Attributes'][
-                        'AccessLog'].get(
-                        'S3AccessPrefix', None))
-                    ]
+        return [elb for elb in resources
+                if not elb['Attributes']['AccessLog']['Enabled'] or
+                (bucket_name and bucket_name != elb['Attributes'][
+                    'AccessLog'].get(
+                    'S3BucketName', None)) or
+                (bucket_prefix and bucket_prefix != elb['Attributes'][
+                    'AccessLog'].get(
+                    'S3AccessPrefix', None))
+                ]

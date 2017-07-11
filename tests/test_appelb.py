@@ -402,3 +402,55 @@ class TestAppElbLogging(BaseTest):
         #
         # self.assertFalse(resources[0]['Attributes']['AccessLog']['Enabled'])
 
+
+class TestAppElbIsLoggingFilter(BaseTest):
+    """ replicate
+        - name: appelb-is-logging-to-bucket-test
+          resource: app-elb
+          filters:
+            - type: is-logging
+            bucket: elbv2logtest
+    """
+
+    def test_is_logging_to_bucket(self):
+        session_factory = self.replay_flight_data('test_appelb_is_logging_filter')
+        policy = self.load_policy({
+            'name': 'appelb-is-logging-to-bucket-test',
+            'resource': 'app-elb',
+            'filters': [
+                {'type': 'is-logging',
+                 'bucket': 'elbv2logtest',
+                 },
+            ]
+        }, session_factory=session_factory)
+
+        resources = policy.run()
+
+        self.assertGreater(len(resources), 0, "Test should find appelbs logging "
+                                              "to elbv2logtest")
+class TestAppElbIsNOtLoggingFilter(BaseTest):
+    """ replicate
+        - name: appelb-is-not-logging-to-bucket-test
+          resource: app-elb
+          filters:
+            - type: is-not-logging
+            bucket: elbv2logtest
+    """
+
+    def test_is_logging_to_bucket(self):
+        session_factory = self.replay_flight_data('test_appelb_is_logging_filter')
+        policy = self.load_policy({
+            'name': 'appelb-is-logging-to-bucket-test',
+            'resource': 'app-elb',
+            'filters': [
+                {'type': 'is-not-logging',
+                 'bucket': 'otherbucket',
+                 },
+            ]
+        }, session_factory=session_factory)
+
+        resources = policy.run()
+
+        self.assertGreater(len(resources), 0, "Test should find appelbs not"
+                                              "logging to otherbucket")
+
