@@ -814,6 +814,7 @@ class IsLoggingFilter(Filter, ELBAttributeFilterBase):
                     'AccessLog'].get('S3BucketPrefix', None))
                 ]
 
+
 @filters.register('is-not-logging')
 class IsNotLoggingFilter(Filter, ELBAttributeFilterBase):
     """ Matches ELBs that are NOT logging to S3.
