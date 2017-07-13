@@ -16,7 +16,7 @@ import datetime
 import logging
 import os
 import subprocess
-import thread
+import six.moves._thread
 
 import click
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -115,7 +115,7 @@ def fetch_events(cursor, config, account_name):
 
 def get_traildb(bucket, key, session_factory, directory):
     local_db_file = directory + "/traildb" + \
-        str(thread.get_ident())
+        str(six.moves._thread.get_ident())
     local_bz2_file = local_db_file + '.bz2'
 
     s3 = local_session(session_factory).resource('s3')
@@ -163,11 +163,10 @@ def index_account_trails(config, account, region, date, directory):
                 if (k['Key'].endswith('trail.db.bz2') and valid_date(k['Key'], date)):
                     keys.append(k)
 
-            futures = map(lambda k: w.submit(
+            futures = [w.submit(
                 get_traildb, bucket, k,
                 lambda: SessionFactory(region, profile=account.get('profile'),
-                assume_role=account.get('role'))(), directory),
-                keys)
+                assume_role=account.get('role'))(), directory) for k in keys]
 
             for f in as_completed(futures):
                 local_db_file = f.result()

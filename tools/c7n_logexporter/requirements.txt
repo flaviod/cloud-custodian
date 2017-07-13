@@ -3,3 +3,4 @@ pyyaml
 click
 c7n
 structlog
+six

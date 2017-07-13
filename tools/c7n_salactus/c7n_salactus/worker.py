@@ -61,6 +61,7 @@ from botocore.exceptions import ClientError, ConnectionError
 from c7n.credentials import assumed_session
 from c7n.resources.s3 import EncryptExtantKeys
 from c7n.utils import chunks
+import six
 
 # We use a connection cache for sts role assumption
 CONN_CACHE = threading.local()
@@ -128,13 +129,13 @@ def bulk_invoke(func, args, nargs):
 
     Uses internal implementation details of rq.
     """
-    ctx = func.delay.func_closure[-1].cell_contents
+    ctx = func.delay.__closure__[-1].cell_contents
     q = Queue(ctx.queue, connection=connection)
     argv = list(args)
     argv.append(None)
     job = Job.create(
         func, args=argv, connection=connection,
-        description="bucket-%s" % func.func_name,
+        description="bucket-%s" % func.__name__,
         origin=q.name, status=JobStatus.QUEUED, timeout=None,
         result_ttl=500, ttl=ctx.ttl)
 
@@ -143,7 +144,7 @@ def bulk_invoke(func, args, nargs):
         with connection.pipeline() as pipe:
             for s in n:
                 argv[-1] = s
-                job._id = unicode(uuid4())
+                job._id = six.text_type(uuid4())
                 job.args = argv
                 q.enqueue_job(job, pipeline=pipe)
 

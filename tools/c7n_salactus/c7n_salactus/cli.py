@@ -29,6 +29,7 @@ from rq.queue import Queue
 from rq.worker import Worker
 
 from c7n_salactus import worker, db
+from six.moves import zip
 
 
 def debug(f):
@@ -68,7 +69,7 @@ def run(config, tag, bucket, account, debug=False):
 
     if debug:
         def invoke(f, *args, **kw):
-            if f.func_name == 'process_keyset':
+            if f.__name__ == 'process_keyset':
                 print("skip keyset")
                 return
             return f(*args, **kw)
@@ -176,7 +177,7 @@ def format_csv(buckets, fh):
     totals['name'] = ''
 
     writer = csv.DictWriter(fh, fieldnames=field_names, extrasaction='ignore')
-    writer.writerow(dict(zip(field_names, field_names)))
+    writer.writerow(dict(list(zip(field_names, field_names))))
     writer.writerow(totals)
 
     for b in buckets:
@@ -257,7 +258,7 @@ def failures():
     """Show any unexpected failures"""
     q = Queue('failed', connection=worker.connection)
     for i in q.get_jobs():
-        click.echo("%s on %s" % (i.func_name, i.origin))
+        click.echo("%s on %s" % (i.__name__, i.origin))
         click.echo(i.exc_info)
 
 

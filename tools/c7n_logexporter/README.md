@@ -35,6 +35,12 @@ archiving.
 make install
 ```
 
+Python 3.6 will be used by default. To use Python 2.7, run
+
+```
+make install27
+```
+
 You can run on a single account / log group via the export subcommand
 ```
 c7n-log-exporter export --help

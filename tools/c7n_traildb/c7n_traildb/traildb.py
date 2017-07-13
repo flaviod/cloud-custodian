@@ -30,6 +30,7 @@ import sqlite3
 import boto3
 
 from botocore.client import Config
+from six.moves import map
 
 
 log = logging.getLogger('c7n_traildb')
@@ -257,7 +258,7 @@ def process_bucket(
         if pool:
             results = pool.map(object_processor, chunks(objects, bsize))
         else:
-            results = map(object_processor, chunks(objects, bsize))
+            results = list(map(object_processor, chunks(objects, bsize)))
 
         st = time.time()
         log.info("Loaded page time:%0.2fs", st - pt)

@@ -5,18 +5,31 @@ s3_bucket=custodian-log-archive
 s3_prefix=build
 period=1h
 
+install27:
+  virtualenv .venv
+  .venv/bin/pip install -r requirements.txt
+  .venv/bin/pip install awscli boto3 awslogs
+  .venv/bin/python setup.py develop
+
 install:
-	virtualenv .venv
-	.venv/bin/pip install -r requirements.txt
-	.venv/bin/pip install awscli boto3 awslogs
-	.venv/bin/python setup.py develop
+  virtualenv -p python3.6 .venv
+  .venv/bin/pip install -r requirements.txt
+  .venv/bin/pip install awscli boto3 awslogs
+  .venv/bin/python setup.py develop
+
+package27:
+  cp -Rf c7n_logexporter stage
+  cp -Rf .venv/lib/python2.7/site-packages/pkg_resources stage
+  .venv/bin/pip install -r requirements.txt -t stage --no-deps
+  cp config.yml stage
+  find stage -name \*.py -delete
 
 package:
-	cp -Rf c7n_logexporter stage
-	cp -Rf .venv/lib/python2.7/site-packages/pkg_resources stage
-	.venv/bin/pip install -r requirements.txt -t stage --no-deps
-	cp config.yml stage
-	find stage -name \*.py -delete
+  cp -Rf c7n_logexporter stage
+  cp -Rf .venv/lib/python3.6/site-packages/pkg_resources stage
+  .venv/bin/pip install -r requirements.txt -t stage --no-deps
+  cp config.yml stage
+  find stage -name \*.py -delete
 
 clean:
 	rm -Rf .venv
