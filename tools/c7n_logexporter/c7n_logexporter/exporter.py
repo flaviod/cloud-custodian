@@ -681,7 +681,7 @@ def export(group, bucket, prefix, start, end, role, poll_period=120, session=Non
 
     t = time.time()
     days = [(start + timedelta(i)).replace(
-                minute=0, hour=0, second=0, microsecond=0)
+            minute=0, hour=0, second=0, microsecond=0)
             for i in range((end - start).days)]
     day_count = len(days)
     s3 = boto3.Session().client('s3')
