@@ -164,7 +164,7 @@ class SetS3Logging(BaseAction):
                     prefix: dahlogs
     """
     schema = type_schema(
-        'set-logging',
+        'set-s3-logging',
         state={'enum': ['enabled', 'disabled']},
         bucket={'type': 'string'},
         prefix={'type': 'string'},
