@@ -143,9 +143,9 @@ class SubnetFilter(net_filters.SubnetFilter):
 filters.register('network-location', net_filters.NetworkLocation)
 
 
-@actions.register('enable-s3-logging')
-class EnableS3Logging(BaseAction):
-    """Action to enable S3 logging for an application loadbalancer.
+@actions.register('set-s3-logging')
+class SetS3Logging(BaseAction):
+    """Action to enable/disable S3 logging for an application loadbalancer.
 
     :example:
 
@@ -162,76 +162,52 @@ class EnableS3Logging(BaseAction):
                   - type: enable-s3-logging
                     bucket: elbv2logtest
                     prefix: dahlogs
-                    deletion_protection: on
-                    idle_timeout: 50
     """
-    schema = type_schema('enable-s3-logging',
+    schema = type_schema(
+        'set-logging',
+        state={'enum': ['enabled', 'disabled']},
         bucket={'type': 'string'},
         prefix={'type': 'string'},
-        idle_timeout={'type': 'integer'},
-        deletion_protection={'type': 'boolean'},
-    )
+        required=('state',))
+
     permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
+
+    def validate(self):
+        if self.data.get('state') == 'enabled':
+            if 'bucket' not in self.data or 'prefix' not in self.data:
+                raise FilterValidationError((
+                    "alb logging enablement requires `bucket` "
+                    "and `prefix` specification"))
+        return self
 
     def process(self, resources):
         client = local_session(self.manager.session_factory).client('elbv2')
         for elb in resources:
             elb_arn = elb['LoadBalancerArn']
             attributes = [{
-                'Key':'access_logs.s3.enabled',
-                'Value':'true'
-            }]
-            for key in ['bucket', 'prefix', ]:
-                if key in self.data:
-                    attributes.append({
-                        'Key': 'access_logs.s3.{k}'.format(k=key),
-                        'Value': str(self.data[key])
-                    })
+                'Key': 'access_logs.s3.enabled',
+                'Value': (
+                    self.data.get('state') == 'enabled' and 'true' or 'value')
+                }]
 
-            if 'deletion_protection' in self.data:
+            if self.data.get('state') == 'enabled':
                 attributes.append({
-                    'Key':'deletion_protection.enabled',
-                    'Value': str(self.data['deletion_protection']).lower()
-                })
+                    'Key': 'access_logs.s3.bucket',
+                    'Value': self.data['bucket']})
 
-            if 'idle_timeout' in self.data:
+                prefix_template = self.data['prefix']
+                info = {t['Key']: t['Value'] for t in elb.get('Tags', ())}
+                info['DNSName'] = elb.get('DNSName', '')
+                info['AccountId'] = elb['LoadBalancerArn'].split(':')[4]
+                info['LoadBalancerName'] = elb['LoadBalancerName']
+
                 attributes.append({
-                    'Key': 'idle_timeout.timeout_seconds',
-                    'Value': str(self.data['idle_timeout'])
-                })
+                    'Key': 'access_logs.s3.prefix',
+                    'Value': prefix_template.format(**info)})
 
-            client.modify_load_balancer_attributes(LoadBalancerArn=elb_arn,
-                                                   Attributes=attributes)
-        return resources
-
-
-@actions.register('disable-s3-logging')
-class DisableS3Logging(BaseAction):
-    """Disable s3 logging for Application Loadbalancer instances.
-
-    :example:
-
-        .. code-block: yaml
-
-            policies:
-              - name: turn-off-elb-logs
-                resource: elb
-                actions:
-                  - type: disable-elb-logging
-    """
-    schema = type_schema('disable-s3-logging')
-    permissions = ("elasticloadbalancing:ModifyLoadBalancerAttributes",)
-
-    def process(self, resources):
-        client = local_session(self.manager.session_factory).client('elbv2')
-        for elb in resources:
-            elb_arn = elb['LoadBalancerArn']
-            client.modify_load_balancer_attributes(LoadBalancerArn=elb_arn,
-                                                   Attributes=[{
-                                                       'Key': 'access_logs.s3.enabled',
-                                                       'Value': 'false'
-                                                   }])
-        return resources
+            self.manager.retry(
+                client.modify_load_balancer_attributes,
+                LoadBalancerArn=elb_arn, Attributes=attributes)
 
 
 @actions.register('mark-for-op')
