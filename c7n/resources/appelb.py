@@ -187,8 +187,7 @@ class SetS3Logging(BaseAction):
             attributes = [{
                 'Key': 'access_logs.s3.enabled',
                 'Value': (
-                    self.data.get('state') == 'enabled' and 'true' or 'value')
-                }]
+                    self.data.get('state') == 'enabled' and 'true' or 'value')}]
 
             if self.data.get('state') == 'enabled':
                 attributes.append({
